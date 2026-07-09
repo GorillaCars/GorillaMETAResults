@@ -1,0 +1,12 @@
+{
+  "name": "gorilla-meta-results",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vercel CRM for Gorilla Cars Meta Ads leads backed by Google Sheets.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

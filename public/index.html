@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gorilla Cars CRM</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="crm-shell">
+      <aside class="sidebar" aria-label="Gorilla Cars CRM navigation">
+        <div class="brand-row">
+          <div class="brand-mark">G</div>
+          <strong>Gorilla CRM</strong>
+          <button class="collapse-button" type="button" aria-label="Collapse navigation">◐</button>
+        </div>
+
+        <nav class="nav-stack">
+          <button class="nav-link" type="button"><span>⌂</span>Dashboard</button>
+          <button class="nav-link" type="button"><span>☏</span>Inbox</button>
+          <button class="nav-link" type="button"><span>✓</span>My work <b>24</b></button>
+          <button class="nav-link" type="button"><span>□</span>Calendar</button>
+          <hr />
+          <button class="nav-link" type="button"><span>◌</span>Campaigns</button>
+          <button class="nav-link" type="button"><span>◇</span>Deals</button>
+          <button class="nav-link is-active" type="button"><span>●</span>Leads</button>
+          <button class="nav-link" type="button"><span>▤</span>Address book</button>
+          <button class="nav-link" type="button"><span>⌑</span>Data room</button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button class="nav-link" type="button"><span>?</span>Help</button>
+          <button class="nav-link" type="button"><span>⚙</span>Settings</button>
+          <div class="usage-card">
+            <strong>Google Sheet linked</strong>
+            <div class="meter"><span style="width: 86%"></span></div>
+            <p id="sheetMeta">Waiting for sync</p>
+          </div>
+          <div class="profile-card">
+            <div class="avatar">GC</div>
+            <div>
+              <strong>Finance Desk</strong>
+              <span>Gorilla Cars</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="page-header">
+          <div>
+            <h1>Leads</h1>
+            <button class="date-filter" type="button">Last 7 days⌄</button>
+          </div>
+          <div class="header-actions">
+            <button class="secondary-action" id="refreshButton" type="button">Refresh</button>
+            <button class="primary-action" id="prepareColumnsButton" type="button">+ Prepare CRM fields</button>
+            <button class="icon-action" type="button" aria-label="More options">•••</button>
+          </div>
+        </header>
+
+        <section class="stat-strip" aria-label="Lead metrics">
+          <article>
+            <span>New</span>
+            <strong id="totalLeads">0</strong>
+            <em class="trend up">+24%</em>
+          </article>
+          <article>
+            <span>Finance ready</span>
+            <strong id="readyLeads">0</strong>
+            <em class="trend up">+8%</em>
+          </article>
+          <article>
+            <span>Needs call</span>
+            <strong id="needsCallLeads">0</strong>
+            <em class="trend down">-4%</em>
+          </article>
+          <article>
+            <span>Total closed</span>
+            <strong id="completeLeads">0</strong>
+            <em class="trend up">$1.2M</em>
+          </article>
+        </section>
+
+        <section class="toolbar">
+          <div class="view-tabs" role="group" aria-label="CRM views">
+            <button class="is-active" type="button">☰ List</button>
+            <button type="button">▦ Board</button>
+            <button type="button">⌁ Pipeline</button>
+          </div>
+          <label class="group-toggle">
+            <input id="groupToggle" type="checkbox" />
+            <span></span>
+            Group
+          </label>
+          <label class="search-box">
+            <span>⌕</span>
+            <input id="searchInput" type="search" placeholder="Search leads..." />
+          </label>
+          <button class="filter-button" type="button" aria-label="Filter leads">≡</button>
+        </section>
+
+        <section class="filter-row" role="group" aria-label="Lead filters">
+          <button class="filter-chip is-active" data-filter="all" type="button">All</button>
+          <button class="filter-chip" data-filter="finance" type="button">Finance</button>
+          <button class="filter-chip" data-filter="trade" type="button">Trade-in</button>
+          <button class="filter-chip" data-filter="needs-call" type="button">Needs call</button>
+          <button class="filter-chip" data-filter="complete" type="button">Complete</button>
+        </section>
+
+        <section class="crm-card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><input id="selectAll" type="checkbox" /></th>
+                  <th>Lead</th>
+                  <th>Source</th>
+                  <th>Status</th>
+                  <th>Interest</th>
+                  <th>Probability</th>
+                  <th>Finance owner</th>
+                  <th>Last action ↓</th>
+                </tr>
+              </thead>
+              <tbody id="leadRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="bulk-bar" id="bulkBar">
+          <span><b id="selectedCount">0</b> selected leads</span>
+          <button type="button">Engage</button>
+          <button type="button">Create group</button>
+          <button type="button">Download CSV</button>
+          <button type="button">Delete leads</button>
+        </div>
+      </main>
+    </div>
+
+    <dialog class="lead-dialog" id="leadDialog">
+      <form id="leadForm" method="dialog">
+        <header>
+          <div>
+            <span class="eyebrow">Lead detail</span>
+            <h2 id="detailName">Lead</h2>
+            <p id="detailContact">No contact supplied</p>
+          </div>
+          <button class="icon-action" value="cancel" type="submit" aria-label="Close">×</button>
+        </header>
+
+        <div class="dialog-grid">
+          <section class="field-group">
+            <h3>Finance workflow</h3>
+            <label>
+              <span>Lead status</span>
+              <select name="lead_status">
+                <option>NEW</option>
+                <option>CONTACTED</option>
+                <option>IN PROGRESS</option>
+                <option>COMPLETE</option>
+                <option>NOT QUALIFIED</option>
+              </select>
+            </label>
+            <label>
+              <span>Finance status</span>
+              <select name="finance_status">
+                <option></option>
+                <option>Needs Call</option>
+                <option>Documents Requested</option>
+                <option>Submitted</option>
+                <option>Approved</option>
+                <option>Declined</option>
+              </select>
+            </label>
+            <label>
+              <span>Priority</span>
+              <select name="priority">
+                <option></option>
+                <option>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+              </select>
+            </label>
+            <label>
+              <span>Assigned to</span>
+              <input name="assigned_to" placeholder="Finance team member" />
+            </label>
+          </section>
+
+          <section class="field-group">
+            <h3>Next action</h3>
+            <label>
+              <span>Vehicle match</span>
+              <input name="vehicle_match" placeholder="Ranger, Hilux, Patrol..." />
+            </label>
+            <label>
+              <span>Last contacted</span>
+              <input name="last_contacted" type="date" />
+            </label>
+            <label>
+              <span>Next action</span>
+              <input name="next_action" placeholder="Call back, send docs..." />
+            </label>
+            <label>
+              <span>Finance notes</span>
+              <textarea name="finance_notes" rows="5" placeholder="Deposit, employment, docs, lender notes"></textarea>
+            </label>
+          </section>
+        </div>
+
+        <footer>
+          <a id="inboxLink" class="secondary-action" href="#" target="_blank" rel="noreferrer">Open inbox</a>
+          <button class="primary-action" id="saveButton" type="button">Save to Google Sheet</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>
