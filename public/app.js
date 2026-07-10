@@ -5,6 +5,8 @@ const state = {
   selectedRow: null,
   page: "leads",
   leadView: "list",
+  calendarMonth: new Date(),
+  selectedDateKey: dateKey(new Date()),
   filter: "all",
   search: ""
 };
@@ -21,6 +23,12 @@ const els = {
   boardView: document.querySelector("#boardView"),
   pipelineView: document.querySelector("#pipelineView"),
   calendarGrid: document.querySelector("#calendarGrid"),
+  calendarMonthLabel: document.querySelector("#calendarMonthLabel"),
+  prevMonthButton: document.querySelector("#prevMonthButton"),
+  nextMonthButton: document.querySelector("#nextMonthButton"),
+  selectedDateTitle: document.querySelector("#selectedDateTitle"),
+  selectedDateSummary: document.querySelector("#selectedDateSummary"),
+  selectedDateLeads: document.querySelector("#selectedDateLeads"),
   recentLeadList: document.querySelector("#recentLeadList"),
   totalLeads: document.querySelector("#totalLeads"),
   readyLeads: document.querySelector("#readyLeads"),
@@ -33,6 +41,12 @@ const els = {
   leadForm: document.querySelector("#leadForm"),
   detailName: document.querySelector("#detailName"),
   detailContact: document.querySelector("#detailContact"),
+  customerName: document.querySelector("#customerName"),
+  customerPhone: document.querySelector("#customerPhone"),
+  customerEmail: document.querySelector("#customerEmail"),
+  answerFinance: document.querySelector("#answerFinance"),
+  answerTrade: document.querySelector("#answerTrade"),
+  answerChasing: document.querySelector("#answerChasing"),
   inboxLink: document.querySelector("#inboxLink"),
   saveButton: document.querySelector("#saveButton"),
   toast: document.querySelector("#toast")
@@ -51,6 +65,8 @@ function bindEvents() {
   els.exportCsvButton.addEventListener("click", exportCsv);
   els.prepareColumnsButton.addEventListener("click", prepareColumns);
   els.saveButton.addEventListener("click", saveSelectedLead);
+  els.prevMonthButton.addEventListener("click", () => moveCalendarMonth(-1));
+  els.nextMonthButton.addEventListener("click", () => moveCalendarMonth(1));
 
   els.searchInput.addEventListener("input", (event) => {
     state.search = event.target.value.trim().toLowerCase();
@@ -82,6 +98,10 @@ async function loadLeads() {
     state.headers = data.headers;
     state.missingFinanceHeaders = data.missingFinanceHeaders;
     state.leads = data.rows.sort((a, b) => leadDate(b) - leadDate(a));
+    if (state.leads.length) {
+      state.calendarMonth = new Date(leadDate(state.leads[0]).getFullYear(), leadDate(state.leads[0]).getMonth(), 1);
+      state.selectedDateKey = dateKey(leadDate(state.leads[0]));
+    }
     els.sheetMeta.textContent = `${data.rows.length} lead${data.rows.length === 1 ? "" : "s"} synced`;
     els.syncMeter.style.width = data.rows.length ? "100%" : "12%";
     renderAll();
@@ -192,21 +212,34 @@ function renderDashboard() {
 
 function renderCalendar() {
   const grouped = groupByDate(state.leads);
-  const entries = [...grouped.entries()].sort(([a], [b]) => new Date(b) - new Date(a)).slice(0, 35);
+  const month = new Date(state.calendarMonth.getFullYear(), state.calendarMonth.getMonth(), 1);
+  const start = startOfCalendar(month);
+  const today = dateKey(new Date());
 
-  els.calendarGrid.innerHTML = entries.length
-    ? entries.map(([key, leads]) => {
-        const date = new Date(`${key}T00:00:00`);
-        return `
-          <article class="calendar-day">
-            <span>${escapeHtml(date.toLocaleDateString(undefined, { weekday: "short" }))}</span>
-            <strong>${escapeHtml(date.toLocaleDateString(undefined, { month: "short", day: "numeric" }))}</strong>
-            <b>${leads.length}</b>
-            <p>${leads.length === 1 ? "lead received" : "leads received"}</p>
-          </article>
-        `;
-      }).join("")
-    : emptyBlock("No lead dates are available yet.");
+  els.calendarMonthLabel.textContent = month.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  els.calendarGrid.innerHTML = Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(start);
+    day.setDate(start.getDate() + index);
+    const key = dateKey(day);
+    const leads = grouped.get(key) || [];
+    const outsideMonth = day.getMonth() !== month.getMonth();
+    return `
+      <button class="calendar-day ${outsideMonth ? "is-muted" : ""} ${key === today ? "is-today" : ""} ${key === state.selectedDateKey ? "is-selected" : ""}" data-date="${key}" type="button">
+        <span>${day.getDate()}</span>
+        <strong>${leads.length}</strong>
+        <p>${leads.length === 1 ? "lead" : "leads"}</p>
+      </button>
+    `;
+  }).join("");
+
+  els.calendarGrid.querySelectorAll("[data-date]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedDateKey = button.dataset.date;
+      renderCalendar();
+    });
+  });
+
+  renderSelectedDate(grouped.get(state.selectedDateKey) || []);
 }
 
 function renderLeadViews() {
@@ -220,7 +253,7 @@ function renderListView() {
   els.leadRows.innerHTML = "";
 
   if (!rows.length) {
-    els.leadRows.innerHTML = `<tr><td colspan="7">${state.leads.length ? "No leads match this view." : "No leads loaded yet."}</td></tr>`;
+    els.leadRows.innerHTML = `<tr><td colspan="5">${state.leads.length ? "No leads match this view." : "No leads loaded yet."}</td></tr>`;
     return;
   }
 
@@ -235,11 +268,9 @@ function renderListView() {
           </span>
         </button>
       </td>
-      <td>${sourceTag(lead)}</td>
+      <td>${escapeHtml(sourceLabel(lead))}</td>
       <td>${statusTag(lead.finance_status || lead.lead_status || "New")}</td>
-      <td>${yesNoTag(financeRequested(lead))}</td>
-      <td>${yesNoTag(tradeRequested(lead))}</td>
-      <td>${escapeHtml(lead.assigned_to || "Unassigned")}</td>
+      <td>${escapeHtml(interestLabel(lead))}</td>
       <td>${escapeHtml(displayDate(lead.created_time))}</td>
     `;
     els.leadRows.appendChild(row);
@@ -307,6 +338,12 @@ function openLead(rowNumber) {
   state.selectedRow = rowNumber;
   els.detailName.textContent = lead.full_name || "Unnamed lead";
   els.detailContact.textContent = [lead.phone, lead.email].filter(Boolean).join(" | ") || "No contact supplied";
+  els.customerName.textContent = lead.full_name || "-";
+  els.customerPhone.textContent = lead.phone || "-";
+  els.customerEmail.textContent = lead.email || "-";
+  els.answerFinance.textContent = lead["are_you_looking_for_finance?"] || "-";
+  els.answerTrade.textContent = lead["do_you_have_a_trade_in?"] || "-";
+  els.answerChasing.textContent = chasingAnswer(lead) || "-";
   els.inboxLink.href = lead.inbox_url || "#";
   els.inboxLink.style.pointerEvents = lead.inbox_url ? "auto" : "none";
 
@@ -325,8 +362,21 @@ function exportCsv() {
     return;
   }
 
-  const headers = ["full_name", "email", "phone", "created_time", "lead_status", "finance_status", "assigned_to", "next_action", "vehicle_match"];
-  const csv = [headers.join(","), ...rows.map((lead) => headers.map((header) => csvCell(lead[header])).join(","))].join("\n");
+  const headers = ["full_name", "source", "lead_status", "interest", "created_date", "email", "phone", "vehicle_match", "finance_notes"];
+  const csv = [
+    headers.join(","),
+    ...rows.map((lead) => [
+      lead.full_name,
+      sourceLabel(lead),
+      lead.finance_status || lead.lead_status,
+      interestLabel(lead),
+      displayDate(lead.created_time),
+      lead.email,
+      lead.phone,
+      lead.vehicle_match,
+      lead.finance_notes
+    ].map(csvCell).join(","))
+  ].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -336,6 +386,12 @@ function exportCsv() {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function moveCalendarMonth(direction) {
+  state.calendarMonth = new Date(state.calendarMonth.getFullYear(), state.calendarMonth.getMonth() + direction, 1);
+  state.selectedDateKey = dateKey(state.calendarMonth);
+  renderCalendar();
 }
 
 function filteredLeads() {
@@ -373,6 +429,24 @@ function groupByDate(leads) {
   }, new Map());
 }
 
+function renderSelectedDate(leads) {
+  const date = new Date(`${state.selectedDateKey}T00:00:00`);
+  els.selectedDateTitle.textContent = date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  els.selectedDateSummary.textContent = `${leads.length} ${leads.length === 1 ? "lead" : "leads"} received.`;
+  els.selectedDateLeads.innerHTML = leads.length
+    ? leads.map((lead) => leadCard(lead, "recent-item")).join("")
+    : emptyBlock("No leads were received on this date.");
+  els.selectedDateLeads.querySelectorAll("[data-open]").forEach(bindOpenButton);
+}
+
+function startOfCalendar(month) {
+  const start = new Date(month);
+  const day = start.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  start.setDate(start.getDate() + mondayOffset);
+  return start;
+}
+
 function leadDate(lead) {
   const date = new Date(lead.created_time || lead.last_contacted || Date.now());
   return Number.isNaN(date.getTime()) ? new Date() : date;
@@ -391,8 +465,11 @@ function includesStatus(lead, values) {
 }
 
 function sourceTag(lead) {
-  const source = lead.campaign_name || lead.ad_name || lead.form_name || "Meta";
-  return `<span class="tag">${escapeHtml(shortSource(source))}</span>`;
+  return `<span class="tag">${escapeHtml(shortSource(sourceLabel(lead)))}</span>`;
+}
+
+function sourceLabel(lead) {
+  return lead.campaign_name || lead.ad_name || lead.form_name || lead.platform || "Meta";
 }
 
 function shortSource(value) {
@@ -413,6 +490,19 @@ function statusTag(value) {
 
 function yesNoTag(value) {
   return `<span class="tag ${value ? "green" : ""}">${value ? "Yes" : "No"}</span>`;
+}
+
+function interestLabel(lead) {
+  const answer = chasingAnswer(lead);
+  if (answer) return answer;
+  const interests = [];
+  if (financeRequested(lead)) interests.push("Finance");
+  if (tradeRequested(lead)) interests.push("Trade-in");
+  return interests.length ? interests.join(", ") : "Not specified";
+}
+
+function chasingAnswer(lead) {
+  return lead["anything_specific_you\u2019re_chasing?"] || lead["anything_specific_you're_chasing?"] || "";
 }
 
 function displayDate(value) {

@@ -98,11 +98,34 @@
 
         <section class="page-view" data-view="calendar">
           <section class="crm-card stacked-card">
-            <div class="section-heading">
-              <h2>Lead calendar</h2>
-              <p>Total leads received by date.</p>
+            <div class="section-heading calendar-heading">
+              <div>
+                <h2>Lead calendar</h2>
+                <p>Total leads received by date.</p>
+              </div>
+              <div class="calendar-actions">
+                <button class="secondary-action" id="prevMonthButton" type="button">Prev</button>
+                <strong id="calendarMonthLabel">Month</strong>
+                <button class="secondary-action" id="nextMonthButton" type="button">Next</button>
+              </div>
+            </div>
+            <div class="calendar-weekdays" aria-hidden="true">
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+              <span>Sun</span>
             </div>
             <div id="calendarGrid" class="calendar-grid"></div>
+            <div class="calendar-selected">
+              <div class="section-heading">
+                <h2 id="selectedDateTitle">Selected date</h2>
+                <p id="selectedDateSummary">Choose a day to see its leads.</p>
+              </div>
+              <div id="selectedDateLeads" class="recent-list"></div>
+            </div>
           </section>
         </section>
 
@@ -132,13 +155,11 @@
               <table>
                 <thead>
                   <tr>
-                    <th>Lead</th>
+                    <th>Full name</th>
                     <th>Source</th>
                     <th>Status</th>
-                    <th>Finance</th>
-                    <th>Trade-in</th>
-                    <th>Owner</th>
-                    <th>Received</th>
+                    <th>Interest</th>
+                    <th>Created date</th>
                   </tr>
                 </thead>
                 <tbody id="leadRows"></tbody>
@@ -170,7 +191,7 @@
 
         <div class="dialog-grid">
           <section class="field-group">
-            <h3>Finance workflow</h3>
+            <h3>Lead management</h3>
             <label>
               <span>Lead status</span>
               <select name="lead_status">
@@ -182,49 +203,40 @@
               </select>
             </label>
             <label>
-              <span>Finance status</span>
-              <select name="finance_status">
-                <option></option>
-                <option>Needs Call</option>
-                <option>Documents Requested</option>
-                <option>Submitted</option>
-                <option>Approved</option>
-                <option>Declined</option>
-              </select>
-            </label>
-            <label>
-              <span>Priority</span>
-              <select name="priority">
-                <option></option>
-                <option>High</option>
-                <option>Medium</option>
-                <option>Low</option>
-              </select>
-            </label>
-            <label>
-              <span>Assigned to</span>
-              <input name="assigned_to" placeholder="Finance team member" />
-            </label>
-          </section>
-
-          <section class="field-group">
-            <h3>Next action</h3>
-            <label>
               <span>Vehicle match</span>
               <input name="vehicle_match" placeholder="Ranger, Hilux, Patrol..." />
-            </label>
-            <label>
-              <span>Last contacted</span>
-              <input name="last_contacted" type="date" />
-            </label>
-            <label>
-              <span>Next action</span>
-              <input name="next_action" placeholder="Call back, send docs..." />
             </label>
             <label>
               <span>Finance notes</span>
               <textarea name="finance_notes" rows="5" placeholder="Deposit, employment, docs, lender notes"></textarea>
             </label>
+          </section>
+
+          <section class="field-group">
+            <h3>Customer information</h3>
+            <div class="info-list">
+              <div><span>Name</span><strong id="customerName">-</strong></div>
+              <div><span>Phone</span><strong id="customerPhone">-</strong></div>
+              <div><span>Email</span><strong id="customerEmail">-</strong></div>
+            </div>
+          </section>
+
+          <section class="field-group span-two">
+            <h3>Customer questions and answers</h3>
+            <div class="qa-list">
+              <div>
+                <span>are_you_looking_for_finance?</span>
+                <strong id="answerFinance">-</strong>
+              </div>
+              <div>
+                <span>do_you_have_a_trade_in?</span>
+                <strong id="answerTrade">-</strong>
+              </div>
+              <div>
+                <span>anything_specific_you_are_chasing?</span>
+                <strong id="answerChasing">-</strong>
+              </div>
+            </div>
           </section>
         </div>
 

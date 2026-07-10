@@ -405,38 +405,92 @@ h1 {
   grid-row: 1 / span 2;
 }
 
+.calendar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-actions strong {
+  min-width: 150px;
+  text-align: center;
+}
+
+.calendar-weekdays,
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-weekdays {
+  gap: 0;
+  padding: 10px 16px 0;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.calendar-weekdays span {
+  padding: 0 8px;
+}
+
+.calendar-grid {
   gap: 10px;
   padding: 16px;
 }
 
 .calendar-day {
-  min-height: 116px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 106px;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fbfaf7;
+  color: var(--text);
+  text-align: left;
 }
 
 .calendar-day span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .calendar-day strong {
-  display: block;
-  margin-top: 6px;
-  font-size: 16px;
+  font-size: 26px;
 }
 
-.calendar-day b {
-  display: block;
-  margin: 12px 0 4px;
-  font-size: 26px;
+.calendar-day.is-muted {
+  opacity: 0.45;
+}
+
+.calendar-day.is-today span {
+  background: var(--brand);
+  color: var(--brand-dark);
+}
+
+.calendar-day.is-selected {
+  border-color: #171612;
+  box-shadow: inset 0 0 0 1px #171612;
+}
+
+.calendar-selected {
+  border-top: 1px solid var(--line);
 }
 
 .stat-strip article {
@@ -838,6 +892,10 @@ tbody tr.is-selected {
   padding: 20px;
 }
 
+.span-two {
+  grid-column: 1 / -1;
+}
+
 .field-group {
   display: grid;
   gap: 12px;
@@ -852,11 +910,35 @@ tbody tr.is-selected {
   gap: 6px;
 }
 
-.field-group label span {
+.field-group label span,
+.info-list span,
+.qa-list span {
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.info-list,
+.qa-list {
+  display: grid;
+  gap: 8px;
+}
+
+.info-list div,
+.qa-list div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfaf7;
+}
+
+.info-list strong,
+.qa-list strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
 }
 
 .field-group input,
