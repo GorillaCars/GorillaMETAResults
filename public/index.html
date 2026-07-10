@@ -12,28 +12,18 @@
         <div class="brand-row">
           <div class="brand-mark">G</div>
           <strong>Gorilla CRM</strong>
-          <button class="collapse-button" type="button" aria-label="Collapse navigation">◐</button>
         </div>
 
-        <nav class="nav-stack">
-          <button class="nav-link" type="button"><span>⌂</span>Dashboard</button>
-          <button class="nav-link" type="button"><span>☏</span>Inbox</button>
-          <button class="nav-link" type="button"><span>✓</span>My work <b>24</b></button>
-          <button class="nav-link" type="button"><span>□</span>Calendar</button>
-          <hr />
-          <button class="nav-link" type="button"><span>◌</span>Campaigns</button>
-          <button class="nav-link" type="button"><span>◇</span>Deals</button>
-          <button class="nav-link is-active" type="button"><span>●</span>Leads</button>
-          <button class="nav-link" type="button"><span>▤</span>Address book</button>
-          <button class="nav-link" type="button"><span>⌑</span>Data room</button>
+        <nav class="nav-stack" aria-label="Primary">
+          <button class="nav-link" data-page="dashboard" type="button"><span>DB</span>Dashboard</button>
+          <button class="nav-link" data-page="calendar" type="button"><span>CA</span>Calendar</button>
+          <button class="nav-link is-active" data-page="leads" type="button"><span>LD</span>Leads</button>
         </nav>
 
         <div class="sidebar-footer">
-          <button class="nav-link" type="button"><span>?</span>Help</button>
-          <button class="nav-link" type="button"><span>⚙</span>Settings</button>
           <div class="usage-card">
-            <strong>Google Sheet linked</strong>
-            <div class="meter"><span style="width: 86%"></span></div>
+            <strong>Google Sheet</strong>
+            <div class="meter"><span id="syncMeter"></span></div>
             <p id="sheetMeta">Waiting for sync</p>
           </div>
           <div class="profile-card">
@@ -49,92 +39,121 @@
       <main class="main-panel">
         <header class="page-header">
           <div>
-            <h1>Leads</h1>
-            <button class="date-filter" type="button">Last 7 days⌄</button>
+            <p class="eyebrow">Gorilla Cars</p>
+            <h1 id="pageTitle">Leads</h1>
           </div>
           <div class="header-actions">
             <button class="secondary-action" id="refreshButton" type="button">Refresh</button>
-            <button class="primary-action" id="prepareColumnsButton" type="button">+ Prepare CRM fields</button>
-            <button class="icon-action" type="button" aria-label="More options">•••</button>
+            <button class="secondary-action" id="exportCsvButton" type="button">Export CSV</button>
+            <button class="primary-action" id="prepareColumnsButton" type="button">Prepare CRM fields</button>
           </div>
         </header>
 
         <section class="stat-strip" aria-label="Lead metrics">
           <article>
-            <span>New</span>
+            <span>Total leads</span>
             <strong id="totalLeads">0</strong>
-            <em class="trend up">+24%</em>
           </article>
           <article>
-            <span>Finance ready</span>
+            <span>Finance requested</span>
             <strong id="readyLeads">0</strong>
-            <em class="trend up">+8%</em>
           </article>
           <article>
             <span>Needs call</span>
             <strong id="needsCallLeads">0</strong>
-            <em class="trend down">-4%</em>
           </article>
           <article>
-            <span>Total closed</span>
+            <span>Completed</span>
             <strong id="completeLeads">0</strong>
-            <em class="trend up">$1.2M</em>
           </article>
         </section>
 
-        <section class="toolbar">
-          <div class="view-tabs" role="group" aria-label="CRM views">
-            <button class="is-active" type="button">☰ List</button>
-            <button type="button">▦ Board</button>
-            <button type="button">⌁ Pipeline</button>
+        <section class="page-view" data-view="dashboard">
+          <div class="dashboard-grid">
+            <article class="summary-card">
+              <span>Today</span>
+              <strong id="todayLeads">0</strong>
+              <p>Leads received today.</p>
+            </article>
+            <article class="summary-card">
+              <span>This week</span>
+              <strong id="weekLeads">0</strong>
+              <p>New Meta leads in the last 7 days.</p>
+            </article>
+            <article class="summary-card">
+              <span>Unassigned</span>
+              <strong id="unassignedLeads">0</strong>
+              <p>Leads without a finance owner.</p>
+            </article>
           </div>
-          <label class="group-toggle">
-            <input id="groupToggle" type="checkbox" />
-            <span></span>
-            Group
-          </label>
-          <label class="search-box">
-            <span>⌕</span>
-            <input id="searchInput" type="search" placeholder="Search leads..." />
-          </label>
-          <button class="filter-button" type="button" aria-label="Filter leads">≡</button>
+
+          <section class="crm-card stacked-card">
+            <div class="section-heading">
+              <h2>Recent leads</h2>
+              <p>The newest enquiries from your Meta form.</p>
+            </div>
+            <div id="recentLeadList" class="recent-list"></div>
+          </section>
         </section>
 
-        <section class="filter-row" role="group" aria-label="Lead filters">
-          <button class="filter-chip is-active" data-filter="all" type="button">All</button>
-          <button class="filter-chip" data-filter="finance" type="button">Finance</button>
-          <button class="filter-chip" data-filter="trade" type="button">Trade-in</button>
-          <button class="filter-chip" data-filter="needs-call" type="button">Needs call</button>
-          <button class="filter-chip" data-filter="complete" type="button">Complete</button>
+        <section class="page-view" data-view="calendar">
+          <section class="crm-card stacked-card">
+            <div class="section-heading">
+              <h2>Lead calendar</h2>
+              <p>Total leads received by date.</p>
+            </div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+          </section>
         </section>
 
-        <section class="crm-card">
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th><input id="selectAll" type="checkbox" /></th>
-                  <th>Lead</th>
-                  <th>Source</th>
-                  <th>Status</th>
-                  <th>Interest</th>
-                  <th>Probability</th>
-                  <th>Finance owner</th>
-                  <th>Last action ↓</th>
-                </tr>
-              </thead>
-              <tbody id="leadRows"></tbody>
-            </table>
-          </div>
-        </section>
+        <section class="page-view is-active" data-view="leads">
+          <section class="toolbar">
+            <div class="view-tabs" role="group" aria-label="Lead views">
+              <button class="is-active" data-lead-view="list" type="button">List</button>
+              <button data-lead-view="board" type="button">Board</button>
+              <button data-lead-view="pipeline" type="button">Pipeline</button>
+            </div>
+            <label class="search-box">
+              <span>Search</span>
+              <input id="searchInput" type="search" placeholder="Name, phone, email, vehicle..." />
+            </label>
+          </section>
 
-        <div class="bulk-bar" id="bulkBar">
-          <span><b id="selectedCount">0</b> selected leads</span>
-          <button type="button">Engage</button>
-          <button type="button">Create group</button>
-          <button type="button">Download CSV</button>
-          <button type="button">Delete leads</button>
-        </div>
+          <section class="filter-row" role="group" aria-label="Lead filters">
+            <button class="filter-chip is-active" data-filter="all" type="button">All</button>
+            <button class="filter-chip" data-filter="finance" type="button">Finance</button>
+            <button class="filter-chip" data-filter="trade" type="button">Trade-in</button>
+            <button class="filter-chip" data-filter="needs-call" type="button">Needs call</button>
+            <button class="filter-chip" data-filter="complete" type="button">Complete</button>
+          </section>
+
+          <section class="crm-card lead-view is-active" data-leads-view="list">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Lead</th>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Finance</th>
+                    <th>Trade-in</th>
+                    <th>Owner</th>
+                    <th>Received</th>
+                  </tr>
+                </thead>
+                <tbody id="leadRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="lead-view" data-leads-view="board">
+            <div id="boardView" class="board-grid"></div>
+          </section>
+
+          <section class="lead-view" data-leads-view="pipeline">
+            <div id="pipelineView" class="pipeline-grid"></div>
+          </section>
+        </section>
       </main>
     </div>
 
@@ -146,7 +165,7 @@
             <h2 id="detailName">Lead</h2>
             <p id="detailContact">No contact supplied</p>
           </div>
-          <button class="icon-action" value="cancel" type="submit" aria-label="Close">×</button>
+          <button class="icon-action" value="cancel" type="submit" aria-label="Close">X</button>
         </header>
 
         <div class="dialog-grid">
