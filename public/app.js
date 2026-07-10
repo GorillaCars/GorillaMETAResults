@@ -97,7 +97,7 @@ async function loadLeads() {
     const data = await api("/api/leads");
     state.headers = data.headers;
     state.missingFinanceHeaders = data.missingFinanceHeaders;
-    state.leads = data.rows.sort((a, b) => leadDate(b) - leadDate(a));
+    state.leads = sortLeadsNewestFirst(data.rows);
     if (state.leads.length) {
       state.calendarMonth = new Date(leadDate(state.leads[0]).getFullYear(), leadDate(state.leads[0]).getMonth(), 1);
       state.selectedDateKey = dateKey(leadDate(state.leads[0]));
@@ -395,7 +395,7 @@ function moveCalendarMonth(direction) {
 }
 
 function filteredLeads() {
-  return state.leads.filter((lead) => {
+  return sortLeadsNewestFirst(state.leads.filter((lead) => {
     const haystack = Object.values(lead).join(" ").toLowerCase();
     if (state.search && !haystack.includes(state.search)) return false;
     if (state.filter === "finance") return financeRequested(lead);
@@ -403,7 +403,7 @@ function filteredLeads() {
     if (state.filter === "needs-call") return normalized(lead.finance_status || lead.lead_status).includes("CALL");
     if (state.filter === "complete") return normalized(lead.lead_status).includes("COMPLETE") || normalized(lead.finance_status).includes("APPROVED");
     return true;
-  });
+  }));
 }
 
 function leadCard(lead, className) {
@@ -448,8 +448,12 @@ function startOfCalendar(month) {
 }
 
 function leadDate(lead) {
-  const date = new Date(lead.created_time || lead.last_contacted || Date.now());
-  return Number.isNaN(date.getTime()) ? new Date() : date;
+  const date = new Date(lead.created_time || "");
+  return Number.isNaN(date.getTime()) ? new Date(0) : date;
+}
+
+function sortLeadsNewestFirst(leads) {
+  return [...leads].sort((a, b) => leadDate(b) - leadDate(a));
 }
 
 function dateKey(date) {
