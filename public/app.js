@@ -1,3 +1,5 @@
+const AUTO_REFRESH_MS = 15 * 60 * 1000;
+
 const state = {
   leads: [],
   headers: [],
@@ -8,11 +10,14 @@ const state = {
   calendarMonth: new Date(),
   selectedDateKey: dateKey(new Date()),
   filter: "all",
-  search: ""
+  search: "",
+  refreshTimer: null,
+  nextRefreshAt: null
 };
 
 const els = {
   sheetMeta: document.querySelector("#sheetMeta"),
+  nextRefreshMeta: document.querySelector("#nextRefreshMeta"),
   syncMeter: document.querySelector("#syncMeter"),
   pageTitle: document.querySelector("#pageTitle"),
   refreshButton: document.querySelector("#refreshButton"),
@@ -58,10 +63,11 @@ async function init() {
   bindEvents();
   setPage("leads");
   await loadLeads();
+  scheduleAutoRefresh();
 }
 
 function bindEvents() {
-  els.refreshButton.addEventListener("click", loadLeads);
+  els.refreshButton.addEventListener("click", refreshNow);
   els.exportCsvButton.addEventListener("click", exportCsv);
   els.prepareColumnsButton.addEventListener("click", prepareColumns);
   els.saveButton.addEventListener("click", saveSelectedLead);
@@ -112,7 +118,13 @@ async function loadLeads() {
     renderAll();
   } finally {
     setBusy(els.refreshButton, false, "Refresh");
+    updateNextRefreshMeta();
   }
+}
+
+async function refreshNow() {
+  await loadLeads();
+  scheduleAutoRefresh();
 }
 
 async function prepareColumns() {
@@ -169,6 +181,22 @@ function setLeadView(view) {
     panel.classList.toggle("is-active", panel.dataset.leadsView === view);
   });
   renderLeadViews();
+}
+
+function scheduleAutoRefresh() {
+  window.clearInterval(state.refreshTimer);
+  state.nextRefreshAt = new Date(Date.now() + AUTO_REFRESH_MS);
+  updateNextRefreshMeta();
+  state.refreshTimer = window.setInterval(async () => {
+    await loadLeads();
+    state.nextRefreshAt = new Date(Date.now() + AUTO_REFRESH_MS);
+    updateNextRefreshMeta();
+  }, AUTO_REFRESH_MS);
+}
+
+function updateNextRefreshMeta() {
+  if (!els.nextRefreshMeta || !state.nextRefreshAt) return;
+  els.nextRefreshMeta.textContent = `Next auto-refresh ${state.nextRefreshAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
 }
 
 function renderAll() {
