@@ -52,6 +52,10 @@ const els = {
   answerFinance: document.querySelector("#answerFinance"),
   answerTrade: document.querySelector("#answerTrade"),
   answerChasing: document.querySelector("#answerChasing"),
+  metaFeedbackStatus: document.querySelector("#metaFeedbackStatus"),
+  metaFeedbackEvent: document.querySelector("#metaFeedbackEvent"),
+  metaFeedbackSentAt: document.querySelector("#metaFeedbackSentAt"),
+  metaFeedbackError: document.querySelector("#metaFeedbackError"),
   inboxLink: document.querySelector("#inboxLink"),
   saveButton: document.querySelector("#saveButton"),
   toast: document.querySelector("#toast")
@@ -146,12 +150,12 @@ async function saveSelectedLead() {
   const payload = Object.fromEntries(new FormData(els.leadForm).entries());
   setBusy(els.saveButton, true, "Saving");
   try {
-    await api(`/api/leads/${state.selectedRow}`, {
+    const result = await api(`/api/leads/${state.selectedRow}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    showToast("Lead saved to Google Sheet.");
+    showToast(saveMessage(result.metaFeedback));
     els.leadDialog.close();
     await loadLeads();
   } catch (error) {
@@ -372,6 +376,10 @@ function openLead(rowNumber) {
   els.answerFinance.textContent = lead["are_you_looking_for_finance?"] || "-";
   els.answerTrade.textContent = lead["do_you_have_a_trade_in?"] || "-";
   els.answerChasing.textContent = chasingAnswer(lead) || "-";
+  els.metaFeedbackStatus.textContent = lead.meta_feedback_status || "Not sent";
+  els.metaFeedbackEvent.textContent = lead.meta_feedback_event || "-";
+  els.metaFeedbackSentAt.textContent = lead.meta_feedback_sent_at ? displayDateTime(lead.meta_feedback_sent_at) : "-";
+  els.metaFeedbackError.textContent = lead.meta_feedback_error || "-";
   els.inboxLink.href = lead.inbox_url || "#";
   els.inboxLink.style.pointerEvents = lead.inbox_url ? "auto" : "none";
 
@@ -544,6 +552,12 @@ function displayDate(value) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+function displayDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
 function financeRequested(lead) {
   return truthyAnswer(lead["are_you_looking_for_finance?"]);
 }
@@ -584,6 +598,19 @@ function showToast(message) {
   els.toast.classList.add("is-visible");
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => els.toast.classList.remove("is-visible"), 4000);
+}
+
+function saveMessage(metaFeedback) {
+  if (!metaFeedback || metaFeedback.status === "skipped") {
+    return "Lead saved to Google Sheet.";
+  }
+  if (metaFeedback.status === "sent") {
+    return "Lead saved and Meta feedback sent.";
+  }
+  if (metaFeedback.status === "error") {
+    return "Lead saved, but Meta feedback returned an error.";
+  }
+  return "Lead saved to Google Sheet.";
 }
 
 function csvCell(value) {

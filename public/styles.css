@@ -925,6 +925,10 @@ tbody tr.is-selected {
   gap: 8px;
 }
 
+.meta-feedback-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .info-list div,
 .qa-list div {
   display: grid;
@@ -1032,6 +1036,10 @@ tbody tr.is-selected {
   .dashboard-grid,
   .pipeline-grid,
   .calendar-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .meta-feedback-list {
     grid-template-columns: 1fr;
   }
 }

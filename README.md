@@ -16,6 +16,7 @@ Vercel-ready CRM for Meta Ads leads flowing into the Gorilla Cars Google Sheet.
   - `vehicle_match`
   - `finance_notes`
 - Writes updates back to the exact Google Sheet row.
+- Sends optional Meta Conversions API feedback when lead status reaches a mapped quality stage.
 - Runs on Vercel with static frontend files and serverless API routes.
 
 ## Google Sheet
@@ -40,6 +41,9 @@ The visible spreadsheet title is `Gorilla Cars Leads META ADS Form`, but the wor
 GOOGLE_SHEET_ID=1hjE0DJ_HCLiFNbpVaqfdIx0m-lFI0zkKYV_ivX3BHZs
 GOOGLE_SHEET_NAME=Sheet1
 GOOGLE_SERVICE_ACCOUNT_JSON={"client_email":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"}
+META_DATASET_ID=1024308829545683
+META_ACCESS_TOKEN=...
+META_GRAPH_VERSION=v25.0
 ```
 
 You can also use these instead of the full JSON:
@@ -62,6 +66,37 @@ The frontend is served from `public/`. Google Sheet reads and writes are handled
 /api/setup/columns
 ```
 
+## Meta Feedback
+
+The app can send server-side lead quality signals to Meta through Conversions API when `lead_status` is saved.
+
+Current mapping:
+
+```text
+IN PROGRESS   -> QualifiedLead
+COMPLETE      -> ConvertedLead
+NOT QUALIFIED -> DisqualifiedLead
+```
+
+The Google Sheet should include these audit columns:
+
+```text
+meta_feedback_status
+meta_feedback_event
+meta_feedback_sent_at
+meta_feedback_error
+```
+
+If the columns are missing, the backend creates them before writing feedback results.
+
+For testing in Events Manager, add:
+
+```bash
+META_TEST_EVENT_CODE=...
+```
+
+Remove `META_TEST_EVENT_CODE` after test events are confirmed.
+
 ## Local Run
 
 ```bash
@@ -79,4 +114,5 @@ http://localhost:5173
 
 - Credentials stay on the server. The browser never receives Google write credentials.
 - The app will not add finance columns automatically. Use `Prepare CRM fields` once from the UI.
+- Meta feedback is non-blocking. Lead saves still succeed if Meta is not configured or returns an error; the result is written to the feedback columns.
 - The app intentionally has no npm dependencies, so it can run anywhere Node 18+ is available.
