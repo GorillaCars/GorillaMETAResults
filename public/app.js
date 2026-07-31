@@ -48,6 +48,14 @@ const els = {
   selectedDateSummary: document.querySelector("#selectedDateSummary"),
   selectedDateLeads: document.querySelector("#selectedDateLeads"),
   recentLeadList: document.querySelector("#recentLeadList"),
+  analyticsTotal: document.querySelector("#analyticsTotal"),
+  analyticsDelta: document.querySelector("#analyticsDelta"),
+  analyticsRange: document.querySelector("#analyticsRange"),
+  analyticsChart: document.querySelector("#analyticsChart"),
+  analyticsThisMonth: document.querySelector("#analyticsThisMonth"),
+  analyticsPrevMonth: document.querySelector("#analyticsPrevMonth"),
+  analyticsBestMonth: document.querySelector("#analyticsBestMonth"),
+  analyticsBestMonthLabel: document.querySelector("#analyticsBestMonthLabel"),
   totalLeads: document.querySelector("#totalLeads"),
   readyLeads: document.querySelector("#readyLeads"),
   needsCallLeads: document.querySelector("#needsCallLeads"),
@@ -309,7 +317,13 @@ function setPage(page) {
   document.querySelectorAll(".page-view").forEach((view) => {
     view.classList.toggle("is-active", view.dataset.view === page);
   });
-  els.pageTitle.textContent = page === "calendar" ? "Calendar" : page === "dashboard" ? "Dashboard" : "Leads";
+  const titles = {
+    analytics: "Analytics",
+    calendar: "Calendar",
+    dashboard: "Dashboard",
+    leads: "Leads"
+  };
+  els.pageTitle.textContent = titles[page] || "Leads";
 }
 
 function setLeadView(view) {
@@ -347,6 +361,7 @@ function updateNextRefreshMeta() {
 function renderAll() {
   renderMetrics();
   renderDashboard();
+  renderAnalytics();
   renderCalendar();
   renderLeadViews();
   renderSetupButton();
@@ -381,6 +396,75 @@ function renderDashboard() {
     : emptyBlock("No leads have been received yet.");
 
   els.recentLeadList.querySelectorAll("[data-open]").forEach(bindOpenButton);
+}
+
+function renderAnalytics() {
+  const months = monthlyLeadSeries();
+  const total = months.reduce((sum, item) => sum + item.count, 0);
+  const thisMonth = months.at(-1)?.count || 0;
+  const prevMonth = months.at(-2)?.count || 0;
+  const change = prevMonth ? Math.round(((thisMonth - prevMonth) / prevMonth) * 100) : thisMonth ? 100 : 0;
+  const best = months.reduce((winner, item) => item.count > winner.count ? item : winner, months[0] || { count: 0, label: "No lead data yet" });
+
+  els.analyticsTotal.textContent = total.toLocaleString();
+  els.analyticsDelta.textContent = `${change >= 0 ? "+" : ""}${change}%`;
+  els.analyticsDelta.className = change >= 0 ? "is-positive" : "is-negative";
+  els.analyticsRange.textContent = "last 12 months";
+  els.analyticsThisMonth.textContent = thisMonth.toLocaleString();
+  els.analyticsPrevMonth.textContent = prevMonth.toLocaleString();
+  els.analyticsBestMonth.textContent = best.count.toLocaleString();
+  els.analyticsBestMonthLabel.textContent = best.count ? best.label : "No lead data yet.";
+  renderAnalyticsChart(months);
+}
+
+function renderAnalyticsChart(months) {
+  const width = 820;
+  const height = 340;
+  const padding = { top: 28, right: 28, bottom: 46, left: 46 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const maxCount = Math.max(1, ...months.map((item) => item.count));
+  const step = months.length > 1 ? chartWidth / (months.length - 1) : chartWidth;
+  const points = months.map((item, index) => {
+    const x = padding.left + index * step;
+    const y = padding.top + chartHeight - (item.count / maxCount) * chartHeight;
+    return { ...item, x, y };
+  });
+  const path = points.map((point, index) => `${index ? "L" : "M"} ${round(point.x)} ${round(point.y)}`).join(" ");
+  const areaPath = `${path} L ${round(points.at(-1)?.x || padding.left)} ${height - padding.bottom} L ${padding.left} ${height - padding.bottom} Z`;
+  const yLabels = niceYAxis(maxCount);
+  const activePoint = points.reduce((latest, point) => point.count >= latest.count ? point : latest, points[0] || { x: 0, y: 0, count: 0, label: "" });
+
+  els.analyticsChart.innerHTML = `
+    <defs>
+      <linearGradient id="leadAreaGradient" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="#3fbda6" stop-opacity="0.28" />
+        <stop offset="100%" stop-color="#3fbda6" stop-opacity="0.03" />
+      </linearGradient>
+    </defs>
+    <rect class="chart-bg" x="0" y="0" width="${width}" height="${height}" rx="0"></rect>
+    ${gridDots(width, height, padding)}
+    ${yLabels.map((label) => {
+      const y = padding.top + chartHeight - (label.value / maxCount) * chartHeight;
+      return `<text class="chart-y-label" x="0" y="${round(y + 4)}">${escapeHtml(label.label)}</text>`;
+    }).join("")}
+    <path class="chart-area" d="${areaPath}"></path>
+    <path class="chart-line" d="${path}"></path>
+    <line class="chart-marker-line" x1="${round(activePoint.x)}" x2="${round(activePoint.x)}" y1="${padding.top}" y2="${height - padding.bottom}"></line>
+    <circle class="chart-marker-ring" cx="${round(activePoint.x)}" cy="${round(activePoint.y)}" r="16"></circle>
+    <circle class="chart-marker-dot" cx="${round(activePoint.x)}" cy="${round(activePoint.y)}" r="5"></circle>
+    <g class="chart-tooltip" transform="translate(${Math.min(width - 190, Math.max(74, activePoint.x - 74))} ${Math.max(26, activePoint.y - 70)})">
+      <rect width="148" height="52" rx="8"></rect>
+      <text x="12" y="20">${escapeHtml(activePoint.label)}</text>
+      <text x="12" y="38">${activePoint.count.toLocaleString()} leads</text>
+    </g>
+    ${points.map((point, index) => `
+      <circle class="chart-point" cx="${round(point.x)}" cy="${round(point.y)}" r="4">
+        <title>${escapeHtml(`${point.label}: ${point.count} leads`)}</title>
+      </circle>
+      ${index % 2 === 0 || index === points.length - 1 ? `<text class="chart-x-label" x="${round(point.x)}" y="${height - 12}">${escapeHtml(point.shortLabel)}</text>` : ""}
+    `).join("")}
+  `;
 }
 
 function renderCalendar() {
@@ -606,6 +690,31 @@ function groupByDate(leads) {
   }, new Map());
 }
 
+function monthlyLeadSeries() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  const months = Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(start.getFullYear(), start.getMonth() + index, 1);
+    return {
+      key: monthKey(date),
+      date,
+      label: date.toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+      shortLabel: date.toLocaleDateString(undefined, { month: "short" }),
+      count: 0
+    };
+  });
+  const byKey = new Map(months.map((item) => [item.key, item]));
+
+  state.leads.forEach((lead) => {
+    const date = leadDate(lead);
+    if (date < start) return;
+    const bucket = byKey.get(monthKey(date));
+    if (bucket) bucket.count += 1;
+  });
+
+  return months;
+}
+
 function renderSelectedDate(leads) {
   const date = new Date(`${state.selectedDateKey}T00:00:00`);
   els.selectedDateTitle.textContent = date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
@@ -638,6 +747,36 @@ function dateKey(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function monthKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function niceYAxis(maxCount) {
+  const top = Math.max(1, maxCount);
+  return [
+    { value: top, label: top.toLocaleString() },
+    { value: Math.round(top * 0.66), label: Math.round(top * 0.66).toLocaleString() },
+    { value: Math.round(top * 0.33), label: Math.round(top * 0.33).toLocaleString() },
+    { value: 0, label: "0" }
+  ];
+}
+
+function gridDots(width, height, padding) {
+  const dots = [];
+  for (let x = padding.left; x <= width - padding.right; x += 34) {
+    for (let y = padding.top; y <= height - padding.bottom; y += 28) {
+      dots.push(`<circle class="chart-grid-dot" cx="${round(x)}" cy="${round(y)}" r="1"></circle>`);
+    }
+  }
+  return dots.join("");
+}
+
+function round(value) {
+  return Math.round(value * 10) / 10;
 }
 
 function includesStatus(lead, values) {

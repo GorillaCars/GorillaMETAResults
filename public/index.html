@@ -36,6 +36,7 @@
 
         <nav class="nav-stack" aria-label="Primary">
           <button class="nav-link" data-page="dashboard" type="button"><span>DB</span>Dashboard</button>
+          <button class="nav-link" data-page="analytics" type="button"><span>AN</span>Analytics</button>
           <button class="nav-link" data-page="calendar" type="button"><span>CA</span>Calendar</button>
           <button class="nav-link is-active" data-page="leads" type="button"><span>LD</span>Leads</button>
         </nav>
@@ -149,6 +150,43 @@
               <div id="selectedDateLeads" class="recent-list"></div>
             </div>
           </section>
+        </section>
+
+        <section class="page-view" data-view="analytics">
+          <section class="analytics-card">
+            <div class="analytics-head">
+              <div>
+                <span>Total leads</span>
+                <strong id="analyticsTotal">0</strong>
+                <p><b id="analyticsDelta">0%</b> <span id="analyticsRange">last 12 months</span></p>
+              </div>
+              <div class="analytics-filter">
+                <span>Last 12 months</span>
+              </div>
+            </div>
+
+            <div class="chart-wrap">
+              <svg id="analyticsChart" class="analytics-chart" role="img" aria-label="Lead performance month to month" viewBox="0 0 820 340"></svg>
+            </div>
+          </section>
+
+          <div class="analytics-grid">
+            <article class="summary-card">
+              <span>This month</span>
+              <strong id="analyticsThisMonth">0</strong>
+              <p>Leads received in the current month.</p>
+            </article>
+            <article class="summary-card">
+              <span>Previous month</span>
+              <strong id="analyticsPrevMonth">0</strong>
+              <p>Leads received last month.</p>
+            </article>
+            <article class="summary-card">
+              <span>Best month</span>
+              <strong id="analyticsBestMonth">0</strong>
+              <p id="analyticsBestMonthLabel">No lead data yet.</p>
+            </article>
+          </div>
         </section>
 
         <section class="page-view is-active" data-view="leads">

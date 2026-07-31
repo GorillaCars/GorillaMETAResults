@@ -6,6 +6,7 @@ Vercel-ready CRM for Meta Ads leads flowing into the Gorilla Cars Google Sheet.
 
 - Reads lead rows from the Google Sheet.
 - Shows a compact CRM interface inspired by modern sales tools.
+- Includes an Analytics tab with month-to-month lead performance.
 - Lets the finance team update `lead_status`.
 - Can add optional CRM finance columns to the sheet:
   - `finance_status`
