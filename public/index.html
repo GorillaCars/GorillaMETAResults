@@ -7,6 +7,21 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <section class="lock-screen" id="lockScreen" aria-label="Unlock Gorilla CRM">
+      <form class="lock-card" id="unlockForm" autocomplete="off">
+        <div class="brand-mark lock-mark">G</div>
+        <p class="eyebrow">Gorilla Cars</p>
+        <h1>Unlock Gorilla CRM</h1>
+        <p class="lock-copy">Enter the finance desk PIN to continue.</p>
+        <label>
+          <span>PIN</span>
+          <input id="pinInput" inputmode="numeric" maxlength="4" placeholder="0000" type="password" />
+        </label>
+        <button class="primary-action" type="submit">Unlock</button>
+        <p class="lock-hint" id="lockHint">CRM locks every 8 hours.</p>
+      </form>
+    </section>
+
     <div class="crm-shell">
       <aside class="sidebar" aria-label="Gorilla Cars CRM navigation">
         <div class="brand-row">
@@ -34,6 +49,7 @@
               <span>Gorilla Cars</span>
             </div>
           </div>
+          <button class="lock-action" id="lockButton" type="button">Lock CRM</button>
         </div>
       </aside>
 

@@ -1,4 +1,7 @@
 const AUTO_REFRESH_MS = 15 * 60 * 1000;
+const LOCK_DURATION_MS = 8 * 60 * 60 * 1000;
+const LOCK_PIN = "4890";
+const LOCK_STORAGE_KEY = "gorillaCrmUnlockedUntil";
 
 const state = {
   leads: [],
@@ -12,10 +15,17 @@ const state = {
   filter: "all",
   search: "",
   refreshTimer: null,
-  nextRefreshAt: null
+  nextRefreshAt: null,
+  lockTimer: null,
+  hasLoadedLeads: false
 };
 
 const els = {
+  lockScreen: document.querySelector("#lockScreen"),
+  unlockForm: document.querySelector("#unlockForm"),
+  pinInput: document.querySelector("#pinInput"),
+  lockHint: document.querySelector("#lockHint"),
+  lockButton: document.querySelector("#lockButton"),
   sheetMeta: document.querySelector("#sheetMeta"),
   nextRefreshMeta: document.querySelector("#nextRefreshMeta"),
   syncMeter: document.querySelector("#syncMeter"),
@@ -66,11 +76,82 @@ document.addEventListener("DOMContentLoaded", init);
 async function init() {
   bindEvents();
   setPage("leads");
+  if (!isUnlocked()) {
+    lockCrm();
+    return;
+  }
+  showCrm();
   await loadLeads();
   scheduleAutoRefresh();
 }
 
+async function unlockCrm({ loadData = false } = {}) {
+  const expiry = Date.now() + LOCK_DURATION_MS;
+  localStorage.setItem(LOCK_STORAGE_KEY, String(expiry));
+  showCrm(expiry);
+
+  if (loadData && !state.hasLoadedLeads) {
+    await loadLeads();
+  }
+  scheduleAutoRefresh();
+}
+
+function showCrm(expiry = Number(localStorage.getItem(LOCK_STORAGE_KEY))) {
+  document.body.classList.remove("is-locked");
+  els.lockScreen.setAttribute("aria-hidden", "true");
+  els.pinInput.value = "";
+  els.lockHint.textContent = "CRM locks every 8 hours.";
+  scheduleLockExpiry(expiry);
+}
+
+function lockCrm() {
+  localStorage.removeItem(LOCK_STORAGE_KEY);
+  window.clearInterval(state.refreshTimer);
+  window.clearTimeout(state.lockTimer);
+  state.nextRefreshAt = null;
+  clearCrmData();
+  updateNextRefreshMeta();
+  if (els.leadDialog.open) els.leadDialog.close();
+  document.body.classList.add("is-locked");
+  els.lockScreen.removeAttribute("aria-hidden");
+  window.setTimeout(() => els.pinInput.focus(), 50);
+}
+
+function isUnlocked() {
+  const expiry = Number(localStorage.getItem(LOCK_STORAGE_KEY));
+  return Number.isFinite(expiry) && expiry > Date.now();
+}
+
+function scheduleLockExpiry(expiry = Number(localStorage.getItem(LOCK_STORAGE_KEY))) {
+  window.clearTimeout(state.lockTimer);
+  if (!Number.isFinite(expiry)) return;
+  state.lockTimer = window.setTimeout(lockCrm, Math.max(0, expiry - Date.now()));
+}
+
+function clearCrmData() {
+  state.leads = [];
+  state.headers = [];
+  state.missingFinanceHeaders = [];
+  state.selectedRow = null;
+  state.hasLoadedLeads = false;
+  els.sheetMeta.textContent = "CRM is locked";
+  els.syncMeter.style.width = "12%";
+  renderAll();
+}
+
+async function handleUnlock(event) {
+  event.preventDefault();
+  if (els.pinInput.value.trim() !== LOCK_PIN) {
+    els.lockHint.textContent = "Incorrect PIN. Try again.";
+    els.pinInput.select();
+    return;
+  }
+  await unlockCrm({ loadData: true });
+}
+
 function bindEvents() {
+  els.unlockForm.addEventListener("submit", handleUnlock);
+  els.lockButton.addEventListener("click", lockCrm);
   els.refreshButton.addEventListener("click", refreshNow);
   els.exportCsvButton.addEventListener("click", exportCsv);
   els.prepareColumnsButton.addEventListener("click", prepareColumns);
@@ -102,6 +183,10 @@ function bindEvents() {
 }
 
 async function loadLeads() {
+  if (!isUnlocked()) {
+    lockCrm();
+    return;
+  }
   setBusy(els.refreshButton, true, "Loading");
   try {
     const data = await api("/api/leads");
@@ -114,6 +199,7 @@ async function loadLeads() {
     }
     els.sheetMeta.textContent = `${data.rows.length} lead${data.rows.length === 1 ? "" : "s"} synced`;
     els.syncMeter.style.width = data.rows.length ? "100%" : "12%";
+    state.hasLoadedLeads = true;
     renderAll();
   } catch (error) {
     els.sheetMeta.textContent = "Sheet connection needs attention";
@@ -188,6 +274,7 @@ function setLeadView(view) {
 }
 
 function scheduleAutoRefresh() {
+  if (!isUnlocked()) return;
   window.clearInterval(state.refreshTimer);
   state.nextRefreshAt = new Date(Date.now() + AUTO_REFRESH_MS);
   updateNextRefreshMeta();
@@ -199,7 +286,11 @@ function scheduleAutoRefresh() {
 }
 
 function updateNextRefreshMeta() {
-  if (!els.nextRefreshMeta || !state.nextRefreshAt) return;
+  if (!els.nextRefreshMeta) return;
+  if (!state.nextRefreshAt) {
+    els.nextRefreshMeta.textContent = "CRM is locked";
+    return;
+  }
   els.nextRefreshMeta.textContent = `Next auto-refresh ${state.nextRefreshAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
 }
 
@@ -572,6 +663,10 @@ function truthyAnswer(value) {
 }
 
 async function api(url, options = {}) {
+  if (!isUnlocked()) {
+    lockCrm();
+    throw new Error("CRM locked. Enter the PIN to continue.");
+  }
   const response = await fetch(url, options);
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {

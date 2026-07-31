@@ -46,11 +46,106 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 input,
 select,
 textarea,
 button {
   outline-color: var(--brand);
+}
+
+.lock-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%) 0 0 / 18px 18px,
+    #151512;
+  color: #fffdf5;
+}
+
+body.is-locked {
+  overflow: hidden;
+}
+
+body.is-locked .lock-screen {
+  display: grid;
+}
+
+body.is-locked .crm-shell {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.lock-card {
+  display: grid;
+  gap: 14px;
+  width: min(380px, 100%);
+  padding: 28px;
+  border: 1px solid rgba(250, 208, 44, 0.36);
+  border-radius: 12px;
+  background: #1e1d19;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.34);
+}
+
+.lock-card h1 {
+  margin: 0;
+  color: #fffdf5;
+}
+
+.lock-copy,
+.lock-hint {
+  color: #bcb7a8;
+}
+
+.lock-hint {
+  min-height: 18px;
+  font-size: 12px;
+}
+
+.lock-card label {
+  display: grid;
+  gap: 7px;
+}
+
+.lock-card label span {
+  color: #d9d3bf;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.lock-card input {
+  height: 42px;
+  border: 1px solid #4c473a;
+  border-radius: 8px;
+  background: #11100e;
+  color: #fffdf5;
+  font-size: 18px;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.lock-card .primary-action {
+  min-height: 40px;
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--brand-dark);
+}
+
+.lock-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  font-size: 18px;
 }
 
 .crm-shell {
@@ -233,6 +328,17 @@ button {
 .profile-card span {
   color: var(--muted);
   font-size: 10px;
+}
+
+.lock-action {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-strong);
+  color: #4d4b46;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .main-panel {

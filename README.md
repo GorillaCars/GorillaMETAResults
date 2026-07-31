@@ -17,6 +17,7 @@ Vercel-ready CRM for Meta Ads leads flowing into the Gorilla Cars Google Sheet.
   - `finance_notes`
 - Writes updates back to the exact Google Sheet row.
 - Sends optional Meta Conversions API feedback when lead status reaches a mapped quality stage.
+- Shows a PIN lock screen and asks the finance team to unlock again every 8 hours.
 - Runs on Vercel with static frontend files and serverless API routes.
 
 ## Google Sheet
@@ -65,6 +66,10 @@ The frontend is served from `public/`. Google Sheet reads and writes are handled
 /api/leads/[rowNumber]
 /api/setup/columns
 ```
+
+## CRM Lock
+
+The browser PIN is `4890`. Once unlocked, the CRM stays open for 8 hours in that browser, then locks and clears the visible lead data until the PIN is entered again.
 
 ## Meta Feedback
 
