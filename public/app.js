@@ -16,6 +16,8 @@ const state = {
   search: "",
   refreshTimer: null,
   nextRefreshAt: null,
+  lockCountTimer: null,
+  nextLockedCountAt: null,
   lockTimer: null,
   hasLoadedLeads: false
 };
@@ -25,6 +27,8 @@ const els = {
   unlockForm: document.querySelector("#unlockForm"),
   pinInput: document.querySelector("#pinInput"),
   lockHint: document.querySelector("#lockHint"),
+  lockedNewCount: document.querySelector("#lockedNewCount"),
+  lockedNewMeta: document.querySelector("#lockedNewMeta"),
   lockButton: document.querySelector("#lockButton"),
   sheetMeta: document.querySelector("#sheetMeta"),
   nextRefreshMeta: document.querySelector("#nextRefreshMeta"),
@@ -97,6 +101,8 @@ async function unlockCrm({ loadData = false } = {}) {
 }
 
 function showCrm(expiry = Number(localStorage.getItem(LOCK_STORAGE_KEY))) {
+  window.clearInterval(state.lockCountTimer);
+  state.nextLockedCountAt = null;
   document.body.classList.remove("is-locked");
   els.lockScreen.setAttribute("aria-hidden", "true");
   els.pinInput.value = "";
@@ -114,6 +120,8 @@ function lockCrm() {
   if (els.leadDialog.open) els.leadDialog.close();
   document.body.classList.add("is-locked");
   els.lockScreen.removeAttribute("aria-hidden");
+  loadLockedLeadCount();
+  scheduleLockedLeadCount();
   window.setTimeout(() => els.pinInput.focus(), 50);
 }
 
@@ -137,6 +145,39 @@ function clearCrmData() {
   els.sheetMeta.textContent = "CRM is locked";
   els.syncMeter.style.width = "12%";
   renderAll();
+}
+
+function scheduleLockedLeadCount() {
+  window.clearInterval(state.lockCountTimer);
+  state.nextLockedCountAt = new Date(Date.now() + AUTO_REFRESH_MS);
+  updateLockedNewMeta();
+  state.lockCountTimer = window.setInterval(async () => {
+    await loadLockedLeadCount();
+    state.nextLockedCountAt = new Date(Date.now() + AUTO_REFRESH_MS);
+    updateLockedNewMeta();
+  }, AUTO_REFRESH_MS);
+}
+
+async function loadLockedLeadCount() {
+  if (isUnlocked()) return;
+  els.lockedNewMeta.textContent = "Checking Google Sheet...";
+  try {
+    const data = await api("/api/leads", { allowLocked: true });
+    const count = data.rows.filter(isCreatedLead).length;
+    els.lockedNewCount.textContent = count;
+    updateLockedNewMeta();
+  } catch (error) {
+    els.lockedNewCount.textContent = "-";
+    els.lockedNewMeta.textContent = "Could not check leads.";
+  }
+}
+
+function updateLockedNewMeta() {
+  if (!state.nextLockedCountAt) {
+    els.lockedNewMeta.textContent = "Refreshes every 15 minutes.";
+    return;
+  }
+  els.lockedNewMeta.textContent = `Refreshes again ${state.nextLockedCountAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
 }
 
 async function handleUnlock(event) {
@@ -657,17 +698,23 @@ function tradeRequested(lead) {
   return truthyAnswer(lead["do_you_have_a_trade_in?"]);
 }
 
+function isCreatedLead(lead) {
+  const status = normalized(lead.lead_status || lead.finance_status || lead.status);
+  return status === "CREATED";
+}
+
 function truthyAnswer(value) {
   const text = normalized(value);
   return text.includes("YES") || text.includes("TRUE") || text.includes("FINANCE") || text.includes("TEST LEAD");
 }
 
 async function api(url, options = {}) {
-  if (!isUnlocked()) {
+  const { allowLocked = false, ...fetchOptions } = options;
+  if (!allowLocked && !isUnlocked()) {
     lockCrm();
     throw new Error("CRM locked. Enter the PIN to continue.");
   }
-  const response = await fetch(url, options);
+  const response = await fetch(url, fetchOptions);
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(payload.error || "Request failed.");

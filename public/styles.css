@@ -116,6 +116,42 @@ body.is-locked .crm-shell {
   gap: 7px;
 }
 
+.lock-counter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid #3e3a30;
+  border-radius: 9px;
+  background: #151411;
+}
+
+.lock-counter span,
+.lock-counter small {
+  color: #bcb7a8;
+}
+
+.lock-counter span {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.lock-counter strong {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-width: 50px;
+  color: var(--brand);
+  font-size: 34px;
+  line-height: 1;
+  text-align: right;
+}
+
+.lock-counter small {
+  font-size: 12px;
+}
+
 .lock-card label span {
   color: #d9d3bf;
   font-size: 11px;

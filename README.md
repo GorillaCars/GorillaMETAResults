@@ -71,6 +71,8 @@ The frontend is served from `public/`. Google Sheet reads and writes are handled
 
 The browser PIN is `4890`. Once unlocked, the CRM stays open for 8 hours in that browser, then locks and clears the visible lead data until the PIN is entered again.
 
+While locked, the unlock screen shows a count of leads with `CREATED` status and refreshes that count every 15 minutes.
+
 ## Meta Feedback
 
 The app can send server-side lead quality signals to Meta through Conversions API when `lead_status` is saved.

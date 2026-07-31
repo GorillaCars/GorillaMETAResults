@@ -13,6 +13,11 @@
         <p class="eyebrow">Gorilla Cars</p>
         <h1>Unlock Gorilla CRM</h1>
         <p class="lock-copy">Enter the finance desk PIN to continue.</p>
+        <div class="lock-counter" aria-live="polite">
+          <span>New created leads</span>
+          <strong id="lockedNewCount">-</strong>
+          <small id="lockedNewMeta">Checking Google Sheet...</small>
+        </div>
         <label>
           <span>PIN</span>
           <input id="pinInput" inputmode="numeric" maxlength="4" placeholder="0000" type="password" />
