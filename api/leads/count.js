@@ -1,4 +1,4 @@
-const { handleError, readLeads, requireSession, sendJson } = require("../../lib/sheets");
+const { handleError, readCreatedLeadCount, sendJson } = require("../../lib/sheets");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "GET") {
@@ -6,8 +6,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    if (!requireSession(req, res)) return;
-    const data = await readLeads();
+    const data = await readCreatedLeadCount();
     return sendJson(res, 200, data);
   } catch (error) {
     return handleError(res, error);

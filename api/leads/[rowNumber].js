@@ -1,4 +1,4 @@
-const { handleError, readRequestBody, sendJson, updateLead } = require("../../lib/sheets");
+const { handleError, readRequestBody, requireSession, sendJson, updateLead } = require("../../lib/sheets");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "PATCH") {
@@ -6,6 +6,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    if (!requireSession(req, res)) return;
     const rowNumber = Number(req.query.rowNumber);
     const body = await readRequestBody(req);
     const result = await updateLead(rowNumber, body);

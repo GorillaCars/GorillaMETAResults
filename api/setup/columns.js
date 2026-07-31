@@ -1,4 +1,4 @@
-const { ensureFinanceColumns, handleError, sendJson } = require("../../lib/sheets");
+const { ensureFinanceColumns, handleError, requireSession, sendJson } = require("../../lib/sheets");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -6,6 +6,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    if (!requireSession(req, res)) return;
     const result = await ensureFinanceColumns();
     return sendJson(res, 200, result);
   } catch (error) {

@@ -8,6 +8,10 @@ loadEnv();
 const PORT = Number(process.env.PORT || 5173);
 const SHEET_ID = process.env.GOOGLE_SHEET_ID || "1hjE0DJ_HCLiFNbpVaqfdIx0m-lFI0zkKYV_ivX3BHZs";
 const SHEET_NAME = process.env.GOOGLE_SHEET_NAME || "Sheet1";
+const CRM_PIN = process.env.CRM_PIN || "";
+const CRM_SESSION_SECRET = process.env.CRM_SESSION_SECRET || process.env.GOOGLE_PRIVATE_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "gorilla-crm-local-secret";
+const CRM_SESSION_COOKIE = "gorilla_crm_session";
+const CRM_SESSION_MS = 8 * 60 * 60 * 1000;
 const PUBLIC_DIR = path.join(__dirname, "public");
 const BASE_HEADERS = [
   "id",
@@ -57,6 +61,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
 
     if (url.pathname === "/api/config" && req.method === "GET") {
+      if (!requireSession(req, res)) return;
       return sendJson(res, 200, {
         sheetId: SHEET_ID,
         sheetName: SHEET_NAME,
@@ -64,18 +69,45 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    if (url.pathname === "/api/auth/unlock" && req.method === "POST") {
+      if (!CRM_PIN) {
+        return sendJson(res, 503, { error: "CRM PIN is not configured." });
+      }
+
+      const body = await readJson(req);
+      if (String(body.pin || "").trim() !== CRM_PIN) {
+        return sendJson(res, 401, { error: "Incorrect PIN." });
+      }
+      const expiresAt = Date.now() + CRM_SESSION_MS;
+      setSessionCookie(res, createSessionToken(expiresAt), Math.floor(CRM_SESSION_MS / 1000));
+      return sendJson(res, 200, { ok: true, expiresAt });
+    }
+
+    if (url.pathname === "/api/auth/lock" && req.method === "POST") {
+      setSessionCookie(res, "", 0);
+      return sendJson(res, 200, { ok: true });
+    }
+
+    if (url.pathname === "/api/leads/count" && req.method === "GET") {
+      const data = await readCreatedLeadCount();
+      return sendJson(res, 200, data);
+    }
+
     if (url.pathname === "/api/leads" && req.method === "GET") {
+      if (!requireSession(req, res)) return;
       const data = await readLeads();
       return sendJson(res, 200, data);
     }
 
     if (url.pathname === "/api/setup/columns" && req.method === "POST") {
+      if (!requireSession(req, res)) return;
       const result = await ensureFinanceColumns();
       return sendJson(res, 200, result);
     }
 
     const leadMatch = url.pathname.match(/^\/api\/leads\/(\d+)$/);
     if (leadMatch && req.method === "PATCH") {
+      if (!requireSession(req, res)) return;
       const body = await readJson(req);
       const result = await updateLead(Number(leadMatch[1]), body);
       return sendJson(res, 200, result);
@@ -106,6 +138,14 @@ async function readLeads() {
     headers,
     missingFinanceHeaders,
     rows: rows.map((row, index) => rowToLead(headers, row, index + 2))
+  };
+}
+
+async function readCreatedLeadCount() {
+  const { rows } = await readLeads();
+  return {
+    createdCount: rows.filter(isCreatedLead).length,
+    checkedAt: new Date().toISOString()
   };
 }
 
@@ -164,6 +204,11 @@ function rowToLead(headers, row, rowNumber) {
     lead[header] = row[index] || "";
   });
   return lead;
+}
+
+function isCreatedLead(lead) {
+  const status = String(lead.lead_status || lead.finance_status || lead.status || "").trim().toUpperCase();
+  return status === "CREATED";
 }
 
 async function sheetsGet(range) {
@@ -359,6 +404,57 @@ function sendBuffer(res, status, buffer, type) {
     "Cache-Control": "no-store"
   });
   res.end(buffer);
+}
+
+function requireSession(req, res) {
+  if (isValidSession(req)) return true;
+  sendJson(res, 401, { error: "CRM is locked." });
+  return false;
+}
+
+function isValidSession(req) {
+  const token = parseCookies(req.headers.cookie || "")[CRM_SESSION_COOKIE];
+  if (!token) return false;
+
+  const [expiresAtText, signature] = token.split(".");
+  const expiresAt = Number(expiresAtText);
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now() || !signature) return false;
+
+  return timingSafeEqual(signature, signSessionExpiry(expiresAt));
+}
+
+function createSessionToken(expiresAt) {
+  return `${expiresAt}.${signSessionExpiry(expiresAt)}`;
+}
+
+function signSessionExpiry(expiresAt) {
+  return crypto.createHmac("sha256", CRM_SESSION_SECRET).update(String(expiresAt)).digest("hex");
+}
+
+function setSessionCookie(res, value, maxAge) {
+  const parts = [
+    `${CRM_SESSION_COOKIE}=${value}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${maxAge}`
+  ];
+  if (process.env.NODE_ENV === "production") parts.push("Secure");
+  res.setHeader("Set-Cookie", parts.join("; "));
+}
+
+function parseCookies(cookieHeader) {
+  return cookieHeader.split(";").reduce((cookies, item) => {
+    const [key, ...valueParts] = item.trim().split("=");
+    if (key) cookies[key] = valueParts.join("=");
+    return cookies;
+  }, {});
+}
+
+function timingSafeEqual(a, b) {
+  const left = Buffer.from(String(a));
+  const right = Buffer.from(String(b));
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
 function base64Url(input) {

@@ -41,6 +41,8 @@ The visible spreadsheet title is `Gorilla Cars Leads META ADS Form`, but the wor
 ```bash
 GOOGLE_SHEET_ID=1hjE0DJ_HCLiFNbpVaqfdIx0m-lFI0zkKYV_ivX3BHZs
 GOOGLE_SHEET_NAME=Sheet1
+CRM_PIN=replace-with-private-pin
+CRM_SESSION_SECRET=replace-with-a-long-random-secret
 GOOGLE_SERVICE_ACCOUNT_JSON={"client_email":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"}
 META_DATASET_ID=1024308829545683
 META_ACCESS_TOKEN=...
@@ -61,17 +63,20 @@ Use the Vercel project `gorilla-meta-results`.
 The frontend is served from `public/`. Google Sheet reads and writes are handled by:
 
 ```text
+/api/auth/unlock
+/api/auth/lock
 /api/config
 /api/leads
+/api/leads/count
 /api/leads/[rowNumber]
 /api/setup/columns
 ```
 
 ## CRM Lock
 
-The browser PIN is `4890`. Once unlocked, the CRM stays open for 8 hours in that browser, then locks and clears the visible lead data until the PIN is entered again.
+The PIN is set server-side with `CRM_PIN`. Once unlocked, the CRM stays open for 8 hours in that browser, then locks and clears the visible lead data until the PIN is entered again.
 
-While locked, the unlock screen shows a count of leads with `CREATED` status and refreshes that count every 15 minutes.
+Private lead APIs require the server-issued unlock session cookie. While locked, the unlock screen calls only `/api/leads/count`, which returns the number of leads with `CREATED` status and refreshes every 15 minutes.
 
 ## Meta Feedback
 

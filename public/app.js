@@ -1,6 +1,5 @@
 const AUTO_REFRESH_MS = 15 * 60 * 1000;
 const LOCK_DURATION_MS = 8 * 60 * 60 * 1000;
-const LOCK_PIN = "4890";
 const LOCK_STORAGE_KEY = "gorillaCrmUnlockedUntil";
 
 const state = {
@@ -89,8 +88,8 @@ async function init() {
   scheduleAutoRefresh();
 }
 
-async function unlockCrm({ loadData = false } = {}) {
-  const expiry = Date.now() + LOCK_DURATION_MS;
+async function unlockCrm({ expiresAt = Date.now() + LOCK_DURATION_MS, loadData = false } = {}) {
+  const expiry = Number(expiresAt) || Date.now() + LOCK_DURATION_MS;
   localStorage.setItem(LOCK_STORAGE_KEY, String(expiry));
   showCrm(expiry);
 
@@ -110,7 +109,10 @@ function showCrm(expiry = Number(localStorage.getItem(LOCK_STORAGE_KEY))) {
   scheduleLockExpiry(expiry);
 }
 
-function lockCrm() {
+function lockCrm({ syncServer = true } = {}) {
+  if (syncServer) {
+    api("/api/auth/lock", { method: "POST", allowLocked: true }).catch(() => {});
+  }
   localStorage.removeItem(LOCK_STORAGE_KEY);
   window.clearInterval(state.refreshTimer);
   window.clearTimeout(state.lockTimer);
@@ -162,9 +164,8 @@ async function loadLockedLeadCount() {
   if (isUnlocked()) return;
   els.lockedNewMeta.textContent = "Checking Google Sheet...";
   try {
-    const data = await api("/api/leads", { allowLocked: true });
-    const count = data.rows.filter(isCreatedLead).length;
-    els.lockedNewCount.textContent = count;
+    const data = await api("/api/leads/count", { allowLocked: true });
+    els.lockedNewCount.textContent = data.createdCount;
     updateLockedNewMeta();
   } catch (error) {
     els.lockedNewCount.textContent = "-";
@@ -182,12 +183,20 @@ function updateLockedNewMeta() {
 
 async function handleUnlock(event) {
   event.preventDefault();
-  if (els.pinInput.value.trim() !== LOCK_PIN) {
-    els.lockHint.textContent = "Incorrect PIN. Try again.";
+  const pin = els.pinInput.value.trim();
+  els.lockHint.textContent = "Checking PIN...";
+  try {
+    const result = await api("/api/auth/unlock", {
+      method: "POST",
+      allowLocked: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin })
+    });
+    await unlockCrm({ expiresAt: result.expiresAt, loadData: true });
+  } catch (error) {
+    els.lockHint.textContent = error.message || "Incorrect PIN. Try again.";
     els.pinInput.select();
-    return;
   }
-  await unlockCrm({ loadData: true });
 }
 
 function bindEvents() {
@@ -698,11 +707,6 @@ function tradeRequested(lead) {
   return truthyAnswer(lead["do_you_have_a_trade_in?"]);
 }
 
-function isCreatedLead(lead) {
-  const status = normalized(lead.lead_status || lead.finance_status || lead.status);
-  return status === "CREATED";
-}
-
 function truthyAnswer(value) {
   const text = normalized(value);
   return text.includes("YES") || text.includes("TRUE") || text.includes("FINANCE") || text.includes("TEST LEAD");
@@ -711,11 +715,14 @@ function truthyAnswer(value) {
 async function api(url, options = {}) {
   const { allowLocked = false, ...fetchOptions } = options;
   if (!allowLocked && !isUnlocked()) {
-    lockCrm();
+    lockCrm({ syncServer: false });
     throw new Error("CRM locked. Enter the PIN to continue.");
   }
   const response = await fetch(url, fetchOptions);
   const payload = await response.json().catch(() => ({}));
+  if (response.status === 401 && !allowLocked) {
+    lockCrm({ syncServer: false });
+  }
   if (!response.ok) {
     throw new Error(payload.error || "Request failed.");
   }
