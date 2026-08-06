@@ -188,7 +188,8 @@ body.is-locked .crm-shell {
   display: grid;
   grid-template-columns: 204px minmax(0, 1fr);
   width: min(1180px, calc(100vw - 96px));
-  min-height: calc(100vh - 88px);
+  height: calc(100vh - 88px);
+  min-height: 620px;
   margin: 44px auto;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -378,7 +379,11 @@ body.is-locked .crm-shell {
 }
 
 .main-panel {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
   padding: 40px;
   background: var(--panel-strong);
 }
@@ -461,6 +466,13 @@ h1 {
 .page-view.is-active,
 .lead-view.is-active {
   display: block;
+}
+
+.page-view.is-active[data-view="leads"] {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .dashboard-grid {
@@ -914,7 +926,22 @@ h1 {
 }
 
 .table-wrap {
+  max-height: min(58vh, 620px);
   overflow: auto;
+}
+
+[data-view="leads"] .table-wrap {
+  max-height: none;
+}
+
+[data-view="leads"] .lead-view.is-active[data-leads-view="list"] {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+[data-view="leads"] .lead-view.is-active[data-leads-view="list"] .table-wrap {
+  height: 100%;
 }
 
 table {
@@ -933,6 +960,10 @@ td {
 }
 
 th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--panel-strong);
   color: #58554f;
   font-size: 10px;
   font-weight: 700;
@@ -1264,12 +1295,12 @@ tbody tr.is-selected {
   .crm-shell {
     width: min(100vw - 28px, 760px);
     grid-template-columns: 1fr;
-    overflow: visible;
+    height: calc(100vh - 28px);
+    min-height: 0;
+    margin: 14px auto;
   }
 
   .sidebar {
-    position: sticky;
-    top: 0;
     z-index: 5;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -1355,7 +1386,8 @@ tbody tr.is-selected {
 
   .crm-shell {
     width: 100%;
-    min-height: 100vh;
+    height: 100vh;
+    min-height: 0;
     margin: 0;
     border: 0;
     border-radius: 0;
@@ -1373,6 +1405,10 @@ tbody tr.is-selected {
 
   .main-panel {
     padding: 18px 14px 24px;
+  }
+
+  .table-wrap {
+    max-height: none;
   }
 
   h1 {
