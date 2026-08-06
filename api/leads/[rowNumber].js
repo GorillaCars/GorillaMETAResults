@@ -8,8 +8,9 @@ module.exports = async function handler(req, res) {
   try {
     if (!requireSession(req, res)) return;
     const rowNumber = Number(req.query.rowNumber);
+    const sheetName = req.query.sheetName || undefined;
     const body = await readRequestBody(req);
-    const result = await updateLead(rowNumber, body);
+    const result = await updateLead(rowNumber, body, sheetName);
     return sendJson(res, 200, result);
   } catch (error) {
     return handleError(res, error);

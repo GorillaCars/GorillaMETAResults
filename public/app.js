@@ -7,6 +7,7 @@ const state = {
   headers: [],
   missingFinanceHeaders: [],
   selectedRow: null,
+  selectedSheetName: null,
   page: "leads",
   leadView: "list",
   calendarMonth: new Date(),
@@ -151,6 +152,7 @@ function clearCrmData() {
   state.headers = [];
   state.missingFinanceHeaders = [];
   state.selectedRow = null;
+  state.selectedSheetName = null;
   state.hasLoadedLeads = false;
   els.sheetMeta.textContent = "CRM is locked";
   els.syncMeter.style.width = "12%";
@@ -294,7 +296,8 @@ async function saveSelectedLead() {
   const payload = Object.fromEntries(new FormData(els.leadForm).entries());
   setBusy(els.saveButton, true, "Saving");
   try {
-    const result = await api(`/api/leads/${state.selectedRow}`, {
+    const sheetQuery = state.selectedSheetName ? `?sheetName=${encodeURIComponent(state.selectedSheetName)}` : "";
+    const result = await api(`/api/leads/${state.selectedRow}${sheetQuery}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -518,7 +521,7 @@ function renderListView() {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>
-        <button class="lead-button" data-open="${lead.rowNumber}" type="button">
+        <button class="lead-button" data-open="${lead.rowNumber}" data-sheet="${escapeHtml(lead.sheetName || "")}" type="button">
           <span class="lead-cell">
             <strong>${escapeHtml(lead.full_name || "Unnamed lead")}</strong>
             <span>${escapeHtml(lead.email || lead.phone || "No contact supplied")}</span>
@@ -588,11 +591,12 @@ function renderPipelineView() {
   }).join("");
 }
 
-function openLead(rowNumber) {
-  const lead = state.leads.find((item) => item.rowNumber === rowNumber);
+function openLead(rowNumber, sheetName = "") {
+  const lead = state.leads.find((item) => item.rowNumber === rowNumber && (!sheetName || item.sheetName === sheetName));
   if (!lead) return;
 
   state.selectedRow = rowNumber;
+  state.selectedSheetName = lead.sheetName || null;
   els.detailName.textContent = lead.full_name || "Unnamed lead";
   els.detailContact.textContent = [lead.phone, lead.email].filter(Boolean).join(" | ") || "No contact supplied";
   els.customerName.textContent = lead.full_name || "-";
@@ -610,7 +614,7 @@ function openLead(rowNumber) {
 
   Array.from(els.leadForm.elements).forEach((field) => {
     if (!field.name) return;
-    field.value = lead[field.name] || "";
+    field.value = field.name === "lead_status" ? formStatusValue(lead[field.name]) : lead[field.name] || "";
   });
 
   els.leadDialog.showModal();
@@ -629,7 +633,7 @@ function exportCsv() {
     ...rows.map((lead) => [
       lead.full_name,
       sourceLabel(lead),
-      lead.finance_status || lead.lead_status,
+      displayStatusLabel(lead.finance_status || lead.lead_status),
       interestLabel(lead),
       displayDate(lead.created_time),
       lead.email,
@@ -669,7 +673,7 @@ function filteredLeads() {
 
 function leadCard(lead, className) {
   return `
-    <button class="${className}" data-open="${lead.rowNumber}" type="button">
+    <button class="${className}" data-open="${lead.rowNumber}" data-sheet="${escapeHtml(lead.sheetName || "")}" type="button">
       <strong>${escapeHtml(lead.full_name || "Unnamed lead")}</strong>
       <span>${escapeHtml(lead.phone || lead.email || "No contact supplied")}</span>
       <small>${escapeHtml(displayDate(lead.created_time))}</small>
@@ -678,7 +682,7 @@ function leadCard(lead, className) {
 }
 
 function bindOpenButton(button) {
-  button.addEventListener("click", () => openLead(Number(button.dataset.open)));
+  button.addEventListener("click", () => openLead(Number(button.dataset.open), button.dataset.sheet || ""));
 }
 
 function groupByDate(leads) {
@@ -805,7 +809,15 @@ function statusTag(value) {
   if (text.includes("DECLINED") || text.includes("LOST") || text.includes("NOT")) variant = "red";
   if (text.includes("DOCUMENT") || text.includes("SUBMITTED") || text.includes("PROGRESS")) variant = "blue";
   if (text.includes("NEW") || text.includes("CALL") || text.includes("CONTACT")) variant = "orange";
-  return `<span class="tag ${variant}">${escapeHtml(value || "New")}</span>`;
+  return `<span class="tag ${variant}">${escapeHtml(displayStatusLabel(value || "New"))}</span>`;
+}
+
+function displayStatusLabel(value) {
+  return normalized(value) === "NOT QUALIFIED" ? "DECLINED" : String(value || "");
+}
+
+function formStatusValue(value) {
+  return normalized(value) === "DECLINED" ? "NOT QUALIFIED" : value || "";
 }
 
 function yesNoTag(value) {

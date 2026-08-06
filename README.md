@@ -27,7 +27,7 @@ Spreadsheet:
 
 `https://docs.google.com/spreadsheets/d/1hjE0DJ_HCLiFNbpVaqfdIx0m-lFI0zkKYV_ivX3BHZs/edit`
 
-The visible spreadsheet title is `Gorilla Cars Leads META ADS Form`, but the worksheet tab returned by Google Sheets is `Sheet1`. The app uses `GOOGLE_SHEET_NAME=Sheet1` by default.
+The visible spreadsheet title is `Gorilla Cars Leads META ADS Form`. The app reads from both `Sheet1` and `Sheet2` by default and writes lead updates back to the original tab each lead came from.
 
 ## Setup
 
@@ -42,6 +42,7 @@ The visible spreadsheet title is `Gorilla Cars Leads META ADS Form`, but the wor
 ```bash
 GOOGLE_SHEET_ID=1hjE0DJ_HCLiFNbpVaqfdIx0m-lFI0zkKYV_ivX3BHZs
 GOOGLE_SHEET_NAME=Sheet1
+GOOGLE_SHEET_NAMES=Sheet1,Sheet2
 CRM_PIN=replace-with-private-pin
 CRM_SESSION_SECRET=replace-with-a-long-random-secret
 GOOGLE_SERVICE_ACCOUNT_JSON={"client_email":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"}
@@ -88,7 +89,7 @@ Current mapping:
 ```text
 IN PROGRESS   -> QualifiedLead
 COMPLETE      -> ConvertedLead
-NOT QUALIFIED -> DisqualifiedLead
+DECLINED / NOT QUALIFIED -> DisqualifiedLead
 ```
 
 The Google Sheet should include these audit columns:

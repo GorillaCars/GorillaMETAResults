@@ -8,6 +8,10 @@ loadEnv();
 const PORT = Number(process.env.PORT || 5173);
 const SHEET_ID = process.env.GOOGLE_SHEET_ID || "1hjE0DJ_HCLiFNbpVaqfdIx0m-lFI0zkKYV_ivX3BHZs";
 const SHEET_NAME = process.env.GOOGLE_SHEET_NAME || "Sheet1";
+const SHEET_NAMES = (process.env.GOOGLE_SHEET_NAMES || `${SHEET_NAME},Sheet2`)
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
 const CRM_PIN = process.env.CRM_PIN || "";
 const CRM_SESSION_SECRET = process.env.CRM_SESSION_SECRET || process.env.GOOGLE_PRIVATE_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "gorilla-crm-local-secret";
 const CRM_SESSION_COOKIE = "gorilla_crm_session";
@@ -65,6 +69,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         sheetId: SHEET_ID,
         sheetName: SHEET_NAME,
+        sheetNames: SHEET_NAMES,
         requiredFinanceHeaders: FINANCE_HEADERS
       });
     }
@@ -109,7 +114,7 @@ const server = http.createServer(async (req, res) => {
     if (leadMatch && req.method === "PATCH") {
       if (!requireSession(req, res)) return;
       const body = await readJson(req);
-      const result = await updateLead(Number(leadMatch[1]), body);
+      const result = await updateLead(Number(leadMatch[1]), body, url.searchParams.get("sheetName") || undefined);
       return sendJson(res, 200, result);
     }
 
@@ -128,16 +133,30 @@ server.listen(PORT, () => {
 });
 
 async function readLeads() {
-  const range = `'${escapeSheetName(SHEET_NAME)}'!A1:AZ1000`;
+  const sheets = await Promise.all(SHEET_NAMES.map(readSheetLeads));
+  const headers = unique(sheets.flatMap((sheet) => sheet.headers));
+  const missingFinanceHeaders = unique(sheets.flatMap((sheet) => sheet.missingFinanceHeaders));
+
+  return {
+    headers,
+    missingFinanceHeaders,
+    sheetNames: SHEET_NAMES,
+    rows: sheets.flatMap((sheet) => sheet.rows)
+  };
+}
+
+async function readSheetLeads(sheetName) {
+  const range = `'${escapeSheetName(sheetName)}'!A1:AZ1000`;
   const values = await sheetsGet(range);
   const headers = values[0] && values[0].length ? values[0] : BASE_HEADERS;
   const rows = values.slice(1).filter((row) => row.some(Boolean));
   const missingFinanceHeaders = FINANCE_HEADERS.filter((header) => !headers.includes(header));
 
   return {
+    sheetName,
     headers,
     missingFinanceHeaders,
-    rows: rows.map((row, index) => rowToLead(headers, row, index + 2))
+    rows: rows.map((row, index) => rowToLead(headers, row, index + 2, sheetName))
   };
 }
 
@@ -150,30 +169,42 @@ async function readCreatedLeadCount() {
 }
 
 async function ensureFinanceColumns() {
-  const values = await sheetsGet(`'${escapeSheetName(SHEET_NAME)}'!A1:AZ1`);
+  const results = await Promise.all(SHEET_NAMES.map(ensureFinanceColumnsForSheet));
+  return {
+    added: unique(results.flatMap((result) => result.added)),
+    sheets: results
+  };
+}
+
+async function ensureFinanceColumnsForSheet(sheetName) {
+  const values = await sheetsGet(`'${escapeSheetName(sheetName)}'!A1:AZ1`);
   const headers = values[0] && values[0].length ? values[0] : BASE_HEADERS;
   const missing = FINANCE_HEADERS.filter((header) => !headers.includes(header));
 
   if (!missing.length) {
-    return { added: [], headers };
+    return { sheetName, added: [], headers };
   }
 
   const startColumn = headers.length + 1;
   const endColumn = headers.length + missing.length;
   await sheetsUpdate(
-    `'${escapeSheetName(SHEET_NAME)}'!${columnName(startColumn)}1:${columnName(endColumn)}1`,
+    `'${escapeSheetName(sheetName)}'!${columnName(startColumn)}1:${columnName(endColumn)}1`,
     [missing]
   );
 
-  return { added: missing, headers: [...headers, ...missing] };
+  return { sheetName, added: missing, headers: [...headers, ...missing] };
 }
 
-async function updateLead(rowNumber, updates) {
+async function updateLead(rowNumber, updates, sheetName = SHEET_NAME) {
+  if (!SHEET_NAMES.includes(sheetName)) {
+    throw publicError(400, "Invalid sheet tab.");
+  }
+
   if (!Number.isInteger(rowNumber) || rowNumber < 2) {
     throw publicError(400, "Invalid lead row.");
   }
 
-  const values = await sheetsGet(`'${escapeSheetName(SHEET_NAME)}'!A1:AZ1`);
+  const values = await sheetsGet(`'${escapeSheetName(sheetName)}'!A1:AZ1`);
   const headers = values[0] && values[0].length ? values[0] : [];
   const allowedUpdates = Object.entries(updates || {}).filter(([key]) => WRITEABLE_FIELDS.has(key));
 
@@ -189,21 +220,25 @@ async function updateLead(rowNumber, updates) {
   const data = allowedUpdates.map(([key, value]) => {
     const column = columnName(headers.indexOf(key) + 1);
     return {
-      range: `'${escapeSheetName(SHEET_NAME)}'!${column}${rowNumber}`,
+      range: `'${escapeSheetName(sheetName)}'!${column}${rowNumber}`,
       values: [[value == null ? "" : String(value)]]
     };
   });
 
   await sheetsBatchUpdate(data);
-  return { ok: true, rowNumber, updated: Object.fromEntries(allowedUpdates) };
+  return { ok: true, rowNumber, sheetName, updated: Object.fromEntries(allowedUpdates) };
 }
 
-function rowToLead(headers, row, rowNumber) {
-  const lead = { rowNumber };
+function rowToLead(headers, row, rowNumber, sheetName = SHEET_NAME) {
+  const lead = { rowNumber, sheetName };
   headers.forEach((header, index) => {
     lead[header] = row[index] || "";
   });
   return lead;
+}
+
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
 }
 
 function isCreatedLead(lead) {
