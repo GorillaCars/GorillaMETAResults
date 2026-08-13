@@ -8,7 +8,7 @@ loadEnv();
 const PORT = Number(process.env.PORT || 5173);
 const SHEET_ID = process.env.GOOGLE_SHEET_ID || "1hjE0DJ_HCLiFNbpVaqfdIx0m-lFI0zkKYV_ivX3BHZs";
 const SHEET_NAME = process.env.GOOGLE_SHEET_NAME || "Sheet1";
-const SHEET_NAMES = (process.env.GOOGLE_SHEET_NAMES || `${SHEET_NAME},Sheet2`)
+const SHEET_NAMES = (process.env.GOOGLE_SHEET_NAMES || `${SHEET_NAME},Sheet2,Leads 3`)
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
@@ -239,6 +239,24 @@ function rowToLead(headers, row, rowNumber, sheetName = SHEET_NAME) {
 }
 
 function applyLeadAliases(lead, headers, row) {
+  if (!lead.full_name) {
+    lead.full_name = firstHeaderValue(headers, row, [
+      "full_name",
+      "full name",
+      "name",
+      "customer_name",
+      "customer name"
+    ]);
+  }
+
+  if (!lead.email) {
+    lead.email = firstHeaderValue(headers, row, [
+      "email",
+      "email_address",
+      "email address"
+    ]);
+  }
+
   if (!lead.phone) {
     lead.phone = firstHeaderValue(headers, row, [
       "phone",

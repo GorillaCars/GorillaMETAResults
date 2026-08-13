@@ -71,9 +71,7 @@ const els = {
   customerName: document.querySelector("#customerName"),
   customerPhone: document.querySelector("#customerPhone"),
   customerEmail: document.querySelector("#customerEmail"),
-  answerFinance: document.querySelector("#answerFinance"),
-  answerTrade: document.querySelector("#answerTrade"),
-  answerChasing: document.querySelector("#answerChasing"),
+  questionAnswers: document.querySelector("#questionAnswers"),
   metaFeedbackStatus: document.querySelector("#metaFeedbackStatus"),
   metaFeedbackEvent: document.querySelector("#metaFeedbackEvent"),
   metaFeedbackSentAt: document.querySelector("#metaFeedbackSentAt"),
@@ -602,9 +600,7 @@ function openLead(rowNumber, sheetName = "") {
   els.customerName.textContent = lead.full_name || "-";
   els.customerPhone.textContent = lead.phone || "-";
   els.customerEmail.textContent = lead.email || "-";
-  els.answerFinance.textContent = lead["are_you_looking_for_finance?"] || "-";
-  els.answerTrade.textContent = lead["do_you_have_a_trade_in?"] || "-";
-  els.answerChasing.textContent = chasingAnswer(lead) || "-";
+  renderQuestionAnswers(lead);
   els.metaFeedbackStatus.textContent = lead.meta_feedback_status || "Not sent";
   els.metaFeedbackEvent.textContent = lead.meta_feedback_event || "-";
   els.metaFeedbackSentAt.textContent = lead.meta_feedback_sent_at ? displayDateTime(lead.meta_feedback_sent_at) : "-";
@@ -679,6 +675,44 @@ function leadCard(lead, className) {
       <small>${escapeHtml(displayDate(lead.created_time))}</small>
     </button>
   `;
+}
+
+function renderQuestionAnswers(lead) {
+  const answers = leadQuestionDefinitions()
+    .map((question) => ({
+      label: question.label,
+      value: firstLeadValue(lead, question.keys)
+    }))
+    .filter((item) => item.value);
+
+  els.questionAnswers.innerHTML = answers.length
+    ? answers.map((item) => `
+      <div>
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(item.value)}</strong>
+      </div>
+    `).join("")
+    : emptyBlock("No customer answers supplied.");
+}
+
+function leadQuestionDefinitions() {
+  return [
+    { label: "Are you looking for finance?", keys: ["are_you_looking_for_finance?"] },
+    { label: "Do you have a trade-in?", keys: ["do_you_have_a_trade_in?"] },
+    { label: "Anything specific you're chasing?", keys: ["anything_specific_you_are_chasing?", "anything_specific_you're_chasing?", "anything_specific_you\u2019re_chasing?"] },
+    { label: "How much money do you want to borrow?", keys: ["How much money do you want to borrow?"] },
+    { label: "Are you employed?", keys: ["Are you employed?"] },
+    { label: "Date of birth", keys: ["Date of birth"] },
+    { label: "Post code", keys: ["Post code", "postcode"] },
+    { label: "What do you do for work?", keys: ["What do you do for work?"] },
+    { label: "Marital status", keys: ["Marital status"] }
+  ];
+}
+
+function firstLeadValue(lead, keys) {
+  const keySet = new Set(keys.map(normalizeKey));
+  const key = Object.keys(lead).find((candidate) => keySet.has(normalizeKey(candidate)));
+  return key ? String(lead[key] || "").trim() : "";
 }
 
 function bindOpenButton(button) {
@@ -920,6 +954,10 @@ function csvCell(value) {
 
 function normalized(value) {
   return String(value || "").trim().toUpperCase();
+}
+
+function normalizeKey(value) {
+  return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
 function escapeHtml(value) {
