@@ -686,10 +686,11 @@ function renderQuestionAnswers(lead) {
     .filter((item) => item.value);
 
   els.questionAnswers.innerHTML = answers.length
-    ? answers.map((item) => `
-      <div>
-        <span>${escapeHtml(item.label)}</span>
-        <strong>${escapeHtml(item.value)}</strong>
+    ? answers.map((item, index) => `
+      <div class="qa-row">
+        <span class="qa-index">${index + 1}.</span>
+        <span class="qa-question">${escapeHtml(item.label)}</span>
+        <strong class="qa-answer">${escapeHtml(item.value)}</strong>
       </div>
     `).join("")
     : emptyBlock("No customer answers supplied.");
