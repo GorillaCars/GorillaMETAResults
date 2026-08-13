@@ -234,7 +234,33 @@ function rowToLead(headers, row, rowNumber, sheetName = SHEET_NAME) {
   headers.forEach((header, index) => {
     lead[header] = row[index] || "";
   });
+  applyLeadAliases(lead, headers, row);
   return lead;
+}
+
+function applyLeadAliases(lead, headers, row) {
+  if (!lead.phone) {
+    lead.phone = firstHeaderValue(headers, row, [
+      "phone",
+      "phone_number",
+      "phone number",
+      "mobile",
+      "mobile_number",
+      "mobile number",
+      "contact_number",
+      "contact number"
+    ]);
+  }
+}
+
+function firstHeaderValue(headers, row, names) {
+  const wanted = new Set(names.map(normalizeHeader));
+  const index = headers.findIndex((header) => wanted.has(normalizeHeader(header)));
+  return index === -1 ? "" : row[index] || "";
+}
+
+function normalizeHeader(header) {
+  return String(header || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
 function unique(values) {
