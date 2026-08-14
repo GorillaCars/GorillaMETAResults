@@ -436,7 +436,6 @@ function renderPlatformComparison() {
       <div class="platform-bar-row">
         <div class="platform-bar-label">
           ${platformBadge(row.key)}
-          <strong>${row.label}</strong>
         </div>
         <div class="platform-bar-track" aria-label="${escapeHtml(`${row.label}: ${row.count} leads`)}">
           <span class="${row.key}" style="width: ${percent}%"></span>
@@ -879,12 +878,12 @@ function platformKey(value) {
 
 function platformBadge(key) {
   if (key === "instagram") {
-    return `<span class="platform-badge instagram"><span>IG</span>Instagram</span>`;
+    return `<span class="platform-badge instagram"><span aria-hidden="true"></span>Instagram</span>`;
   }
   if (key === "facebook") {
-    return `<span class="platform-badge facebook"><span>f</span>Facebook</span>`;
+    return `<span class="platform-badge facebook"><span aria-hidden="true"></span>Facebook</span>`;
   }
-  return `<span class="platform-badge unknown"><span>?</span>Unknown</span>`;
+  return `<span class="platform-badge unknown"><span aria-hidden="true"></span>Unknown</span>`;
 }
 
 function shortSource(value) {

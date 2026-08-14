@@ -603,7 +603,7 @@ h1 {
 
 .platform-bar-row {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) 52px;
+  grid-template-columns: 116px minmax(0, 1fr) 52px;
   align-items: center;
   gap: 12px;
 }
@@ -713,6 +713,7 @@ h1 {
 }
 
 .platform-badge span {
+  position: relative;
   display: grid;
   place-items: center;
   width: 18px;
@@ -724,6 +725,12 @@ h1 {
   line-height: 1;
 }
 
+.platform-badge span::before,
+.platform-badge span::after {
+  content: "";
+  position: absolute;
+}
+
 .platform-badge.facebook {
   background: #dbe9ff;
   color: #174ea6;
@@ -731,9 +738,22 @@ h1 {
 
 .platform-badge.facebook span {
   background: #1877f2;
-  font-family: Georgia, serif;
-  font-size: 15px;
-  font-weight: 900;
+}
+
+.platform-badge.facebook span::before {
+  width: 4px;
+  height: 11px;
+  border-radius: 2px 2px 0 0;
+  background: #fff;
+  transform: translateX(1px);
+}
+
+.platform-badge.facebook span::after {
+  width: 7px;
+  height: 3px;
+  border-radius: 999px;
+  background: #fff;
+  transform: translate(2px, -2px);
 }
 
 .platform-badge.instagram {
@@ -743,6 +763,21 @@ h1 {
 
 .platform-badge.instagram span {
   background: #c35bd7;
+}
+
+.platform-badge.instagram span::before {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 4px;
+}
+
+.platform-badge.instagram span::after {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: #fff;
+  transform: translate(3px, -3px);
 }
 
 .section-heading {
