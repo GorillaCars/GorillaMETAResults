@@ -170,6 +170,14 @@
             </div>
           </section>
 
+          <section class="platform-card">
+            <div class="section-heading">
+              <h2>Platform comparison</h2>
+              <p>Instagram vs Facebook lead volume.</p>
+            </div>
+            <div id="platformComparison" class="platform-bars"></div>
+          </section>
+
           <div class="analytics-grid">
             <article class="summary-card">
               <span>This month</span>
@@ -278,6 +286,7 @@
               <div><span>Name</span><strong id="customerName">-</strong></div>
               <div><span>Phone</span><strong id="customerPhone">-</strong></div>
               <div><span>Email</span><strong id="customerEmail">-</strong></div>
+              <div><span>Platform</span><strong id="detailPlatformBadge">-</strong></div>
             </div>
           </section>
 
@@ -298,8 +307,14 @@
         </div>
 
         <footer>
-          <a id="inboxLink" class="secondary-action" href="#" target="_blank" rel="noreferrer">Open inbox</a>
-          <button class="primary-action" id="saveButton" type="button">Save to Google Sheet</button>
+          <div class="dialog-source">
+            <span>Campaign</span>
+            <strong id="detailCampaignName">-</strong>
+          </div>
+          <div class="dialog-actions">
+            <a id="inboxLink" class="business-suite-action" href="#" target="_blank" rel="noreferrer">Open in Business Suite</a>
+            <button class="primary-action" id="saveButton" type="button">Save to Google Sheet</button>
+          </div>
         </footer>
       </form>
     </dialog>

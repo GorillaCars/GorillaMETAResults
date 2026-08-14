@@ -53,6 +53,7 @@ const els = {
   analyticsDelta: document.querySelector("#analyticsDelta"),
   analyticsRange: document.querySelector("#analyticsRange"),
   analyticsChart: document.querySelector("#analyticsChart"),
+  platformComparison: document.querySelector("#platformComparison"),
   analyticsThisMonth: document.querySelector("#analyticsThisMonth"),
   analyticsPrevMonth: document.querySelector("#analyticsPrevMonth"),
   analyticsBestMonth: document.querySelector("#analyticsBestMonth"),
@@ -71,6 +72,8 @@ const els = {
   customerName: document.querySelector("#customerName"),
   customerPhone: document.querySelector("#customerPhone"),
   customerEmail: document.querySelector("#customerEmail"),
+  detailPlatformBadge: document.querySelector("#detailPlatformBadge"),
+  detailCampaignName: document.querySelector("#detailCampaignName"),
   questionAnswers: document.querySelector("#questionAnswers"),
   metaFeedbackStatus: document.querySelector("#metaFeedbackStatus"),
   metaFeedbackEvent: document.querySelector("#metaFeedbackEvent"),
@@ -416,6 +419,32 @@ function renderAnalytics() {
   els.analyticsBestMonth.textContent = best.count.toLocaleString();
   els.analyticsBestMonthLabel.textContent = best.count ? best.label : "No lead data yet.";
   renderAnalyticsChart(months);
+  renderPlatformComparison();
+}
+
+function renderPlatformComparison() {
+  const counts = platformCounts(state.leads);
+  const total = Math.max(1, counts.facebook + counts.instagram);
+  const rows = [
+    { key: "instagram", label: "Instagram", count: counts.instagram },
+    { key: "facebook", label: "Facebook", count: counts.facebook }
+  ];
+
+  els.platformComparison.innerHTML = rows.map((row) => {
+    const percent = Math.round((row.count / total) * 100);
+    return `
+      <div class="platform-bar-row">
+        <div class="platform-bar-label">
+          ${platformBadge(row.key)}
+          <strong>${row.label}</strong>
+        </div>
+        <div class="platform-bar-track" aria-label="${escapeHtml(`${row.label}: ${row.count} leads`)}">
+          <span class="${row.key}" style="width: ${percent}%"></span>
+        </div>
+        <strong class="platform-bar-count">${row.count.toLocaleString()}</strong>
+      </div>
+    `;
+  }).join("");
 }
 
 function renderAnalyticsChart(months) {
@@ -600,13 +629,15 @@ function openLead(rowNumber, sheetName = "") {
   els.customerName.textContent = lead.full_name || "-";
   els.customerPhone.textContent = lead.phone || "-";
   els.customerEmail.textContent = lead.email || "-";
+  els.detailPlatformBadge.innerHTML = platformBadge(platformKey(lead.platform));
+  els.detailCampaignName.textContent = lead.campaign_name || "No campaign supplied";
   renderQuestionAnswers(lead);
   els.metaFeedbackStatus.textContent = lead.meta_feedback_status || "Not sent";
   els.metaFeedbackEvent.textContent = lead.meta_feedback_event || "-";
   els.metaFeedbackSentAt.textContent = lead.meta_feedback_sent_at ? displayDateTime(lead.meta_feedback_sent_at) : "-";
   els.metaFeedbackError.textContent = lead.meta_feedback_error || "-";
   els.inboxLink.href = lead.inbox_url || "#";
-  els.inboxLink.style.pointerEvents = lead.inbox_url ? "auto" : "none";
+  els.inboxLink.style.display = lead.inbox_url ? "inline-flex" : "none";
 
   Array.from(els.leadForm.elements).forEach((field) => {
     if (!field.name) return;
@@ -829,6 +860,31 @@ function sourceTag(lead) {
 
 function sourceLabel(lead) {
   return lead.campaign_name || lead.ad_name || lead.form_name || lead.platform || "Meta";
+}
+
+function platformCounts(leads) {
+  return leads.reduce((counts, lead) => {
+    const key = platformKey(lead.platform);
+    if (key === "facebook" || key === "instagram") counts[key] += 1;
+    return counts;
+  }, { facebook: 0, instagram: 0 });
+}
+
+function platformKey(value) {
+  const text = normalized(value);
+  if (text.includes("INSTAGRAM") || text === "IG") return "instagram";
+  if (text.includes("FACEBOOK") || text === "FB") return "facebook";
+  return "unknown";
+}
+
+function platformBadge(key) {
+  if (key === "instagram") {
+    return `<span class="platform-badge instagram"><span>IG</span>Instagram</span>`;
+  }
+  if (key === "facebook") {
+    return `<span class="platform-badge facebook"><span>f</span>Facebook</span>`;
+  }
+  return `<span class="platform-badge unknown"><span>?</span>Unknown</span>`;
 }
 
 function shortSource(value) {
