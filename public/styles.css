@@ -701,10 +701,10 @@ h1 {
 .platform-badge {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   width: fit-content;
-  min-height: 26px;
-  padding: 3px 8px 3px 4px;
+  min-height: 28px;
+  padding: 4px 9px 4px 5px;
   border-radius: 999px;
   background: #e7e5df;
   color: #262520;
@@ -716,8 +716,9 @@ h1 {
   position: relative;
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
   border-radius: 999px;
   background: #171612;
   color: #fff;
@@ -741,19 +742,19 @@ h1 {
 }
 
 .platform-badge.facebook span::before {
-  width: 4px;
-  height: 11px;
+  width: 3px;
+  height: 10px;
   border-radius: 2px 2px 0 0;
   background: #fff;
-  transform: translateX(1px);
+  transform: translate(1px, 2px);
 }
 
 .platform-badge.facebook span::after {
-  width: 7px;
-  height: 3px;
+  width: 6px;
+  height: 2px;
   border-radius: 999px;
   background: #fff;
-  transform: translate(2px, -2px);
+  transform: translate(2px, 0);
 }
 
 .platform-badge.instagram {
