@@ -120,16 +120,13 @@ Remove `META_TEST_EVENT_CODE` after test events are confirmed.
 
 ## Local Run
 
-```bash
-cp .env.example .env
-npm start
+On Windows, double-click or run:
+
+```powershell
+.\test-run-local.bat
 ```
 
-Open:
-
-```text
-http://localhost:5173
-```
+The first run creates `.env` from `.env.example` and opens it in Notepad. Add your private keys, save, then run the BAT again. It will start the local server and open `http://localhost:5173`.
 
 ## Notes
 
