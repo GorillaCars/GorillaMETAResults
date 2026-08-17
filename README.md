@@ -81,6 +81,8 @@ The frontend is served from `public/`. Google Sheet reads and writes are handled
 
 The CRM unlocks by checking the supplied password against Supabase Auth for `CRM_AUTH_EMAIL`, which defaults to `admin@gorillacars.com.au`. Add `SUPABASE_URL` and either `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY` in Vercel.
 
+If your Vercel project already uses Supabase's common frontend names, the CRM also accepts `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+
 Once unlocked, the CRM stays open for 8 hours in that browser, then locks and clears the visible lead data until the user signs in again. In production, Supabase Auth must be configured. `CRM_PIN` remains only as a local fallback when running outside production without Supabase Auth environment variables.
 
 Private lead APIs require the server-issued unlock session cookie. While locked, the unlock screen calls only `/api/leads/count`, which returns the number of leads with `CREATED` status and refreshes every 15 minutes.
