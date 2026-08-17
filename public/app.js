@@ -25,7 +25,8 @@ const state = {
 const els = {
   lockScreen: document.querySelector("#lockScreen"),
   unlockForm: document.querySelector("#unlockForm"),
-  pinInput: document.querySelector("#pinInput"),
+  emailInput: document.querySelector("#emailInput"),
+  passwordInput: document.querySelector("#passwordInput"),
   lockHint: document.querySelector("#lockHint"),
   lockedNewCount: document.querySelector("#lockedNewCount"),
   lockedNewMeta: document.querySelector("#lockedNewMeta"),
@@ -114,7 +115,7 @@ function showCrm(expiry = Number(localStorage.getItem(LOCK_STORAGE_KEY))) {
   state.nextLockedCountAt = null;
   document.body.classList.remove("is-locked");
   els.lockScreen.setAttribute("aria-hidden", "true");
-  els.pinInput.value = "";
+  els.passwordInput.value = "";
   els.lockHint.textContent = "CRM locks every 8 hours.";
   scheduleLockExpiry(expiry);
 }
@@ -134,7 +135,7 @@ function lockCrm({ syncServer = true } = {}) {
   els.lockScreen.removeAttribute("aria-hidden");
   loadLockedLeadCount();
   scheduleLockedLeadCount();
-  window.setTimeout(() => els.pinInput.focus(), 50);
+  window.setTimeout(() => els.passwordInput.focus(), 50);
 }
 
 function isUnlocked() {
@@ -194,19 +195,20 @@ function updateLockedNewMeta() {
 
 async function handleUnlock(event) {
   event.preventDefault();
-  const pin = els.pinInput.value.trim();
-  els.lockHint.textContent = "Checking PIN...";
+  const email = els.emailInput.value.trim();
+  const password = els.passwordInput.value;
+  els.lockHint.textContent = "Checking Supabase login...";
   try {
     const result = await api("/api/auth/unlock", {
       method: "POST",
       allowLocked: true,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin })
+      body: JSON.stringify({ email, password })
     });
     await unlockCrm({ expiresAt: result.expiresAt, loadData: true });
   } catch (error) {
-    els.lockHint.textContent = error.message || "Incorrect PIN. Try again.";
-    els.pinInput.select();
+    els.lockHint.textContent = error.message || "Incorrect login. Try again.";
+    els.passwordInput.select();
   }
 }
 
@@ -957,7 +959,7 @@ async function api(url, options = {}) {
   const { allowLocked = false, ...fetchOptions } = options;
   if (!allowLocked && !isUnlocked()) {
     lockCrm({ syncServer: false });
-    throw new Error("CRM locked. Enter the PIN to continue.");
+    throw new Error("CRM locked. Sign in to continue.");
   }
   const response = await fetch(url, fetchOptions);
   const payload = await response.json().catch(() => ({}));

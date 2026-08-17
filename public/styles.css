@@ -165,9 +165,15 @@ body.is-locked .crm-shell {
   border-radius: 8px;
   background: #11100e;
   color: #fffdf5;
-  font-size: 18px;
+  font-size: 14px;
   letter-spacing: 0;
-  text-align: center;
+  text-align: left;
+  padding: 0 12px;
+}
+
+.lock-card input[readonly] {
+  color: #d9d3bf;
+  background: #181713;
 }
 
 .lock-card .primary-action {

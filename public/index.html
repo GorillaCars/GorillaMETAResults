@@ -12,17 +12,21 @@
         <div class="brand-mark lock-mark">G</div>
         <p class="eyebrow">Gorilla Cars</p>
         <h1>Unlock Gorilla CRM</h1>
-        <p class="lock-copy">Enter the finance desk PIN to continue.</p>
+        <p class="lock-copy">Sign in with the authorised finance account to continue.</p>
         <div class="lock-counter" aria-live="polite">
           <span>New created leads</span>
           <strong id="lockedNewCount">-</strong>
           <small id="lockedNewMeta">Checking Google Sheet...</small>
         </div>
         <label>
-          <span>PIN</span>
-          <input id="pinInput" inputmode="numeric" maxlength="4" placeholder="0000" type="password" />
+          <span>Email</span>
+          <input id="emailInput" autocomplete="username" readonly type="email" value="admin@gorillacars.com.au" />
         </label>
-        <button class="primary-action" type="submit">Unlock</button>
+        <label>
+          <span>Password</span>
+          <input id="passwordInput" autocomplete="current-password" placeholder="Supabase password" type="password" />
+        </label>
+        <button class="primary-action" type="submit">Sign in</button>
         <p class="lock-hint" id="lockHint">CRM locks every 8 hours.</p>
       </form>
     </section>

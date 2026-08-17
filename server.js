@@ -13,9 +13,12 @@ const SHEET_NAMES = (process.env.GOOGLE_SHEET_NAMES || `${SHEET_NAME},Sheet2,Lea
   .map((name) => name.trim())
   .filter(Boolean);
 const CRM_PIN = process.env.CRM_PIN || "";
+const CRM_AUTH_EMAIL = (process.env.CRM_AUTH_EMAIL || "admin@gorillacars.com.au").trim().toLowerCase();
 const CRM_SESSION_SECRET = process.env.CRM_SESSION_SECRET || process.env.GOOGLE_PRIVATE_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "gorilla-crm-local-secret";
 const CRM_SESSION_COOKIE = "gorilla_crm_session";
 const CRM_SESSION_MS = 8 * 60 * 60 * 1000;
+const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
+const SUPABASE_AUTH_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "";
 const PUBLIC_DIR = path.join(__dirname, "public");
 const BASE_HEADERS = [
   "id",
@@ -75,13 +78,25 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === "/api/auth/unlock" && req.method === "POST") {
-      if (!CRM_PIN) {
-        return sendJson(res, 503, { error: "CRM PIN is not configured." });
-      }
-
       const body = await readJson(req);
-      if (String(body.pin || "").trim() !== CRM_PIN) {
-        return sendJson(res, 401, { error: "Incorrect PIN." });
+      if (shouldUseSupabaseAuth()) {
+        if (!isSupabaseAuthConfigured()) {
+          return sendJson(res, 503, { error: "Supabase Auth environment variables are not fully configured." });
+        }
+
+        await verifySupabasePasswordLogin({
+          email: body.email || CRM_AUTH_EMAIL,
+          password: body.password || body.pin,
+          forwardedFor: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || ""
+        });
+      } else {
+        if (!CRM_PIN) {
+          return sendJson(res, 503, { error: "Supabase Auth is not configured." });
+        }
+
+        if (String(body.pin || body.password || "").trim() !== CRM_PIN) {
+          return sendJson(res, 401, { error: "Incorrect password." });
+        }
       }
       const expiresAt = Date.now() + CRM_SESSION_MS;
       setSessionCookie(res, createSessionToken(expiresAt), Math.floor(CRM_SESSION_MS / 1000));
@@ -489,6 +504,54 @@ function requireSession(req, res) {
   if (isValidSession(req)) return true;
   sendJson(res, 401, { error: "CRM is locked." });
   return false;
+}
+
+function isSupabaseAuthConfigured() {
+  return Boolean(SUPABASE_URL && SUPABASE_AUTH_KEY);
+}
+
+function shouldUseSupabaseAuth() {
+  return process.env.NODE_ENV === "production" || Boolean(SUPABASE_URL || SUPABASE_AUTH_KEY);
+}
+
+async function verifySupabasePasswordLogin({ email, password, forwardedFor }) {
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  const cleanPassword = String(password || "");
+
+  if (cleanEmail !== CRM_AUTH_EMAIL) {
+    throw publicError(401, "Use the authorised Gorilla Cars admin account.");
+  }
+
+  if (!cleanPassword) {
+    throw publicError(400, "Enter your Supabase password.");
+  }
+
+  const headers = {
+    apikey: SUPABASE_AUTH_KEY,
+    Authorization: `Bearer ${SUPABASE_AUTH_KEY}`,
+    "Content-Type": "application/json"
+  };
+  if (forwardedFor) {
+    headers["X-Forwarded-For"] = String(forwardedFor).split(",")[0].trim();
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw publicError(401, payload.error_description || payload.msg || "Incorrect email or password.");
+  }
+
+  const authenticatedEmail = String(payload.user?.email || "").trim().toLowerCase();
+  if (authenticatedEmail !== CRM_AUTH_EMAIL) {
+    throw publicError(403, "This Supabase user is not allowed to access Gorilla CRM.");
+  }
+
+  return payload.user;
 }
 
 function isValidSession(req) {

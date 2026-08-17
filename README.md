@@ -18,7 +18,7 @@ Vercel-ready CRM for Meta Ads leads flowing into the Gorilla Cars Google Sheet.
   - `finance_notes`
 - Writes updates back to the exact Google Sheet row.
 - Sends optional Meta Conversions API feedback when lead status reaches a mapped quality stage.
-- Shows a PIN lock screen and asks the finance team to unlock again every 8 hours.
+- Shows a Supabase-protected login screen and asks the finance team to unlock again every 8 hours.
 - Runs on Vercel with static frontend files and serverless API routes.
 
 ## Google Sheet
@@ -45,6 +45,9 @@ GOOGLE_SHEET_NAME=Sheet1
 GOOGLE_SHEET_NAMES=Sheet1,Sheet2,Leads 3
 CRM_PIN=replace-with-private-pin
 CRM_SESSION_SECRET=replace-with-a-long-random-secret
+CRM_AUTH_EMAIL=admin@gorillacars.com.au
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-or-publishable-key
 GOOGLE_SERVICE_ACCOUNT_JSON={"client_email":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"}
 META_DATASET_ID=1024308829545683
 META_ACCESS_TOKEN=...
@@ -74,9 +77,11 @@ The frontend is served from `public/`. Google Sheet reads and writes are handled
 /api/setup/columns
 ```
 
-## CRM Lock
+## CRM Login
 
-The PIN is set server-side with `CRM_PIN`. Once unlocked, the CRM stays open for 8 hours in that browser, then locks and clears the visible lead data until the PIN is entered again.
+The CRM unlocks by checking the supplied password against Supabase Auth for `CRM_AUTH_EMAIL`, which defaults to `admin@gorillacars.com.au`. Add `SUPABASE_URL` and either `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY` in Vercel.
+
+Once unlocked, the CRM stays open for 8 hours in that browser, then locks and clears the visible lead data until the user signs in again. In production, Supabase Auth must be configured. `CRM_PIN` remains only as a local fallback when running outside production without Supabase Auth environment variables.
 
 Private lead APIs require the server-issued unlock session cookie. While locked, the unlock screen calls only `/api/leads/count`, which returns the number of leads with `CREATED` status and refreshes every 15 minutes.
 
