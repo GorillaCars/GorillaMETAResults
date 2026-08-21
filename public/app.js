@@ -556,9 +556,9 @@ function renderListView() {
           </span>
         </button>
       </td>
-      <td>${escapeHtml(sourceLabel(lead))}</td>
+      <td>${escapeHtml(lead.phone || "-")}</td>
+      <td>${escapeHtml(employmentLabel(lead))}</td>
       <td>${statusTag(lead.finance_status || lead.lead_status || "New")}</td>
-      <td>${escapeHtml(interestLabel(lead))}</td>
       <td>${escapeHtml(displayDate(lead.created_time))}</td>
     `;
     els.leadRows.appendChild(row);
@@ -923,6 +923,17 @@ function interestLabel(lead) {
   if (financeRequested(lead)) interests.push("Finance");
   if (tradeRequested(lead)) interests.push("Trade-in");
   return interests.length ? interests.join(", ") : "Not specified";
+}
+
+function employmentLabel(lead) {
+  return firstLeadValue(lead, [
+    "What do you do for work?",
+    "what_do_you_do_for_work",
+    "Are you employed?",
+    "are_you_employed",
+    "employment",
+    "employment_status"
+  ]) || "-";
 }
 
 function chasingAnswer(lead) {
