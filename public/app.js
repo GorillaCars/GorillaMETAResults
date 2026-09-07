@@ -5,7 +5,6 @@ const LOCK_STORAGE_KEY = "gorillaCrmUnlockedUntil";
 const state = {
   leads: [],
   headers: [],
-  missingFinanceHeaders: [],
   selectedRow: null,
   selectedSheetName: null,
   page: "leads",
@@ -37,7 +36,6 @@ const els = {
   pageTitle: document.querySelector("#pageTitle"),
   refreshButton: document.querySelector("#refreshButton"),
   exportCsvButton: document.querySelector("#exportCsvButton"),
-  prepareColumnsButton: document.querySelector("#prepareColumnsButton"),
   searchInput: document.querySelector("#searchInput"),
   leadRows: document.querySelector("#leadRows"),
   boardView: document.querySelector("#boardView"),
@@ -152,7 +150,6 @@ function scheduleLockExpiry(expiry = Number(localStorage.getItem(LOCK_STORAGE_KE
 function clearCrmData() {
   state.leads = [];
   state.headers = [];
-  state.missingFinanceHeaders = [];
   state.selectedRow = null;
   state.selectedSheetName = null;
   state.hasLoadedLeads = false;
@@ -217,7 +214,6 @@ function bindEvents() {
   els.lockButton.addEventListener("click", lockCrm);
   els.refreshButton.addEventListener("click", refreshNow);
   els.exportCsvButton.addEventListener("click", exportCsv);
-  els.prepareColumnsButton.addEventListener("click", prepareColumns);
   els.saveButton.addEventListener("click", saveSelectedLead);
   els.prevMonthButton.addEventListener("click", () => moveCalendarMonth(-1));
   els.nextMonthButton.addEventListener("click", () => moveCalendarMonth(1));
@@ -254,7 +250,6 @@ async function loadLeads() {
   try {
     const data = await api("/api/leads");
     state.headers = data.headers;
-    state.missingFinanceHeaders = data.missingFinanceHeaders;
     state.leads = sortLeadsNewestFirst(data.rows);
     if (state.leads.length) {
       state.calendarMonth = new Date(leadDate(state.leads[0]).getFullYear(), leadDate(state.leads[0]).getMonth(), 1);
@@ -278,19 +273,6 @@ async function loadLeads() {
 async function refreshNow() {
   await loadLeads();
   scheduleAutoRefresh();
-}
-
-async function prepareColumns() {
-  setBusy(els.prepareColumnsButton, true, "Preparing");
-  try {
-    const result = await api("/api/setup/columns", { method: "POST" });
-    showToast(result.added.length ? `Added CRM fields: ${result.added.join(", ")}` : "CRM fields are already ready.");
-    await loadLeads();
-  } catch (error) {
-    showToast(error.message);
-  } finally {
-    setBusy(els.prepareColumnsButton, false, "Prepare CRM fields");
-  }
 }
 
 async function saveSelectedLead() {
@@ -370,7 +352,6 @@ function renderAll() {
   renderAnalytics();
   renderCalendar();
   renderLeadViews();
-  renderSetupButton();
 }
 
 function renderMetrics() {
@@ -981,10 +962,6 @@ async function api(url, options = {}) {
     throw new Error(payload.error || "Request failed.");
   }
   return payload;
-}
-
-function renderSetupButton() {
-  els.prepareColumnsButton.style.display = state.missingFinanceHeaders.length ? "inline-flex" : "none";
 }
 
 function emptyBlock(message) {
