@@ -27,7 +27,7 @@ Spreadsheet:
 
 `https://docs.google.com/spreadsheets/d/1hjE0DJ_HCLiFNbpVaqfdIx0m-lFI0zkKYV_ivX3BHZs/edit`
 
-The visible spreadsheet title is `Gorilla Cars Leads META ADS Form`. The app reads from `Sheet1`, `Sheet2`, and `Leads 3` by default and writes lead updates back to the original tab each lead came from.
+The visible spreadsheet title is `Gorilla Cars Leads META ADS Form`. The app reads from `Sheet1`, `Sheet2`, `Leads 3`, and `Leads 4` by default and writes lead updates back to the original tab each lead came from.
 
 ## Setup
 
@@ -42,7 +42,7 @@ The visible spreadsheet title is `Gorilla Cars Leads META ADS Form`. The app rea
 ```bash
 GOOGLE_SHEET_ID=1hjE0DJ_HCLiFNbpVaqfdIx0m-lFI0zkKYV_ivX3BHZs
 GOOGLE_SHEET_NAME=Sheet1
-GOOGLE_SHEET_NAMES=Sheet1,Sheet2,Leads 3
+GOOGLE_SHEET_NAMES=Sheet1,Sheet2,Leads 3,Leads 4
 CRM_PIN=replace-with-private-pin
 CRM_SESSION_SECRET=replace-with-a-long-random-secret
 CRM_AUTH_EMAIL=admin@gorillacars.com.au
