@@ -113,10 +113,11 @@ If the columns are missing, the backend creates them before writing feedback res
 For testing in Events Manager, add:
 
 ```bash
+META_TEST_MODE=true
 META_TEST_EVENT_CODE=...
 ```
 
-Remove `META_TEST_EVENT_CODE` after test events are confirmed.
+Keep `META_TEST_MODE` unset or set it to `false` for Meta's CRM verification flow and normal production events. This prevents an old test code from routing live CRM events into the separate Test Events channel.
 
 ## Local Run
 
