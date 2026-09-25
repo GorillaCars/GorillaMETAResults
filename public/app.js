@@ -745,7 +745,7 @@ function isLeadQuestionField(key) {
   const normalizedKey = normalizeKey(key);
   if (!normalizedKey || normalizedKey.endsWith("_id")) return false;
   return !new Set([
-    "row_number", "sheet_name", "id", "lead_id", "created_time", "created_date",
+    "row_number", "rownumber", "sheet_name", "sheetname", "id", "lead_id", "created_time", "created_date",
     "ad_name", "adset_name", "campaign_name", "form_name", "is_organic", "platform",
     "source", "status", "lead_status", "full_name", "name", "customer_name",
     "email", "email_address", "phone", "phone_number", "mobile", "mobile_number",
