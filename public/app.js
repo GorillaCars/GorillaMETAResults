@@ -72,6 +72,7 @@ const els = {
   customerPhone: document.querySelector("#customerPhone"),
   customerEmail: document.querySelector("#customerEmail"),
   detailPlatformBadge: document.querySelector("#detailPlatformBadge"),
+  customerInformation: document.querySelector("#customerInformation"),
   detailCampaignName: document.querySelector("#detailCampaignName"),
   questionAnswers: document.querySelector("#questionAnswers"),
   metaFeedbackStatus: document.querySelector("#metaFeedbackStatus"),
@@ -608,10 +609,7 @@ function openLead(rowNumber, sheetName = "") {
   state.selectedSheetName = lead.sheetName || null;
   els.detailName.textContent = lead.full_name || "Unnamed lead";
   els.detailContact.textContent = [lead.phone, lead.email].filter(Boolean).join(" | ") || "No contact supplied";
-  els.customerName.textContent = lead.full_name || "-";
-  els.customerPhone.textContent = lead.phone || "-";
-  els.customerEmail.textContent = lead.email || "-";
-  els.detailPlatformBadge.innerHTML = platformBadge(platformKey(lead.platform));
+  renderCustomerInformation(lead);
   els.detailCampaignName.textContent = lead.campaign_name || "No campaign supplied";
   renderQuestionAnswers(lead);
   els.metaFeedbackStatus.textContent = lead.meta_feedback_status || "Not sent";
@@ -692,7 +690,12 @@ function leadCard(lead, className) {
 
 function renderQuestionAnswers(lead) {
   const usedKeys = new Set();
-  const answers = leadQuestionDefinitions()
+  customerInformationDefinitions(lead).forEach((field) => {
+    const entry = firstLeadEntry(lead, field.keys);
+    if (entry) usedKeys.add(normalizeKey(entry.key));
+  });
+
+  const answers = leadQuestionDefinitions(lead)
     .map((question) => {
       const entry = firstLeadEntry(lead, question.keys);
       if (entry) usedKeys.add(normalizeKey(entry.key));
@@ -717,7 +720,51 @@ function renderQuestionAnswers(lead) {
     : emptyBlock("No customer answers supplied.");
 }
 
-function leadQuestionDefinitions() {
+function renderCustomerInformation(lead) {
+  const rows = customerInformationDefinitions(lead).map((field) => ({
+    label: field.label,
+    value: firstLeadValue(lead, field.keys) || "-"
+  }));
+
+  els.customerInformation.innerHTML = [
+    ...rows.map((item) => `<div><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong></div>`),
+    `<div><span>Platform</span><strong>${platformBadge(platformKey(lead.platform))}</strong></div>`
+  ].join("");
+}
+
+function customerInformationDefinitions(lead) {
+  if (isLeadsFiveForm(lead)) {
+    return [
+      { label: "Email", keys: ["email", "email_address"] },
+      { label: "Full Name", keys: ["full_name", "name", "customer_name"] },
+      { label: "Phone Number", keys: ["phone_number", "phone", "mobile", "mobile_number", "contact_number"] },
+      { label: "Street Address", keys: ["street_address", "address"] },
+      { label: "State", keys: ["state"] },
+      { label: "Postal Code", keys: ["post_code", "postcode", "postal_code"] },
+      { label: "Date of Birth", keys: ["date_of_birth", "date of birth", "dob"] },
+      { label: "Marital Status", keys: ["marital_status", "marital status"] }
+    ];
+  }
+
+  return [
+    { label: "Name", keys: ["full_name", "name", "customer_name"] },
+    { label: "Phone", keys: ["phone", "phone_number", "mobile", "mobile_number", "contact_number"] },
+    { label: "Email", keys: ["email", "email_address"] }
+  ];
+}
+
+function leadQuestionDefinitions(lead) {
+  if (isLeadsFiveForm(lead)) {
+    return [
+      { label: "Finance Amount ($)", keys: ["finance_amount_($)", "finance_amount", "how much money do you want to borrow?"] },
+      { label: "Residency", keys: ["residency"] },
+      { label: "Are you employed?", keys: ["are_you_employed?", "are you employed?"] },
+      { label: "What is your job?", keys: ["job_title", "what is your job?", "what do you do for work?"] },
+      { label: "Length of time in job", keys: ["length_of_time_in_job"] },
+      { label: "Weekly income (after tax)", keys: ["weekly_income_(after_tax)", "weekly_income_after_tax"] }
+    ];
+  }
+
   return [
     { label: "Are you looking for finance?", keys: ["are_you_looking_for_finance?"] },
     { label: "Do you have a trade-in?", keys: ["do_you_have_a_trade_in?"] },
@@ -729,6 +776,10 @@ function leadQuestionDefinitions() {
     { label: "What do you do for work?", keys: ["What do you do for work?"] },
     { label: "Marital status", keys: ["Marital status"] }
   ];
+}
+
+function isLeadsFiveForm(lead) {
+  return normalizeKey(lead.sheetName).startsWith("leads_5");
 }
 
 function firstLeadValue(lead, keys) {
