@@ -94,6 +94,7 @@ The app can send server-side lead quality signals to Meta through Conversions AP
 Current mapping:
 
 ```text
+CONTACTED     -> CONTACTED
 IN PROGRESS   -> QualifiedLead
 COMPLETE      -> ConvertedLead
 DECLINED / NOT QUALIFIED -> DisqualifiedLead
