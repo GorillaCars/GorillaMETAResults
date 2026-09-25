@@ -1408,8 +1408,6 @@ tbody tr.is-selected {
 
 .lead-management-panel {
   grid-area: management;
-  position: sticky;
-  top: 0;
 }
 
 .customer-profile-panel {
@@ -1690,10 +1688,6 @@ tbody tr.is-selected {
       "customer"
       "answers"
       "feedback";
-  }
-
-  .lead-management-panel {
-    position: static;
   }
 }
 
