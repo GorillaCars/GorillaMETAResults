@@ -8,10 +8,11 @@ loadEnv();
 const PORT = Number(process.env.PORT || 5173);
 const SHEET_ID = process.env.GOOGLE_SHEET_ID || "1hjE0DJ_HCLiFNbpVaqfdIx0m-lFI0zkKYV_ivX3BHZs";
 const SHEET_NAME = process.env.GOOGLE_SHEET_NAME || "Sheet1";
-const SHEET_NAMES = (process.env.GOOGLE_SHEET_NAMES || `${SHEET_NAME},Sheet2,Leads 3,Leads 4`)
-  .split(",")
-  .map((name) => name.trim())
-  .filter(Boolean);
+const REQUIRED_SHEET_NAMES = [SHEET_NAME, "Sheet2", "Leads 3", "Leads 4", "Leads 5 (2)"];
+const SHEET_NAMES = [...new Set([
+  ...REQUIRED_SHEET_NAMES,
+  ...(process.env.GOOGLE_SHEET_NAMES || "").split(",")
+].map((name) => name.trim()).filter(Boolean))];
 const CRM_PIN = process.env.CRM_PIN || "";
 const CRM_AUTH_EMAIL = (process.env.CRM_AUTH_EMAIL || "admin@gorillacars.com.au").trim().toLowerCase();
 const CRM_SESSION_SECRET = process.env.CRM_SESSION_SECRET || process.env.GOOGLE_PRIVATE_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "gorilla-crm-local-secret";

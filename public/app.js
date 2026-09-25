@@ -691,12 +691,20 @@ function leadCard(lead, className) {
 }
 
 function renderQuestionAnswers(lead) {
+  const usedKeys = new Set();
   const answers = leadQuestionDefinitions()
-    .map((question) => ({
-      label: question.label,
-      value: firstLeadValue(lead, question.keys)
-    }))
+    .map((question) => {
+      const entry = firstLeadEntry(lead, question.keys);
+      if (entry) usedKeys.add(normalizeKey(entry.key));
+      return { label: question.label, value: entry?.value || "" };
+    })
     .filter((item) => item.value);
+
+  Object.entries(lead).forEach(([key, rawValue]) => {
+    const value = String(rawValue || "").trim();
+    if (!value || usedKeys.has(normalizeKey(key)) || !isLeadQuestionField(key)) return;
+    answers.push({ label: questionLabel(key), value });
+  });
 
   els.questionAnswers.innerHTML = answers.length
     ? answers.map((item, index) => `
@@ -724,9 +732,33 @@ function leadQuestionDefinitions() {
 }
 
 function firstLeadValue(lead, keys) {
+  return firstLeadEntry(lead, keys)?.value || "";
+}
+
+function firstLeadEntry(lead, keys) {
   const keySet = new Set(keys.map(normalizeKey));
   const key = Object.keys(lead).find((candidate) => keySet.has(normalizeKey(candidate)));
-  return key ? String(lead[key] || "").trim() : "";
+  return key ? { key, value: String(lead[key] || "").trim() } : null;
+}
+
+function isLeadQuestionField(key) {
+  const normalizedKey = normalizeKey(key);
+  if (!normalizedKey || normalizedKey.endsWith("_id")) return false;
+  return !new Set([
+    "row_number", "sheet_name", "id", "lead_id", "created_time", "created_date",
+    "ad_name", "adset_name", "campaign_name", "form_name", "is_organic", "platform",
+    "source", "status", "lead_status", "full_name", "name", "customer_name",
+    "email", "email_address", "phone", "phone_number", "mobile", "mobile_number",
+    "contact_number", "inbox_url", "finance_status", "priority", "assigned_to",
+    "next_action", "last_contacted", "vehicle_match", "finance_notes",
+    "meta_feedback_status", "meta_feedback_event", "meta_feedback_sent_at",
+    "meta_feedback_error"
+  ]).has(normalizedKey);
+}
+
+function questionLabel(key) {
+  const label = String(key || "").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
+  return label ? label.charAt(0).toUpperCase() + label.slice(1) : "Question";
 }
 
 function bindOpenButton(button) {
